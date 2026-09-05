@@ -1,0 +1,19 @@
+households: 100
+initial_storage: 0.0        # kL per household at t=0
+demand_factor: 1.6          # dif - scales both demand streams
+rainfall_factor: 2.4        # rwf - roof capture multiplier
+indoor_demand: 3.6          # kL/household/month before dif
+outdoor_demand: 1.95
+price_kwh: 0.1
+price_water: 5.55           # $/kL under the first tariff
+price_water_tiers: [5.97, 6.66, 8.33]
+tier_limits: [6, 4.5, 24.5] # kL/household before each tariff step
+pump_cost: 0.0005
+stormwater_factor: 10       # swi - neighbourhood catchment inflation
+usable_greywater: 0.75      # ugw
+big_m: 9999999999999
+capital_cost:  {RWI: 692, RWO: 508, HGW: 461, CSW: 17323, CGW: 4620}
+operating_cost: {RWI: 0.0, RWO: 0.0, HGW: 0.0, CSW: 0.0, CGW: 0.0}
+energy_use:    {RWI: 1.1, RWO: 0.55, HGW: 2.0, CSW: 0.1, CGW: 0.5}
+storage_cap:   {RWI: 3.78, RWO: 3.78, HGW: 0.09, CSW: 6, CGW: 12}
+rainfall_mm:   {1: 20, 2: 20, 3: 30, 4: 50, 5: 70, 6: 90, 7: 100, 8: 70, 9: 50, 10: 40, 11: 20, 12: 20}

@@ -1,0 +1,35 @@
+# --- restricted input data: Pecan Street licence, see README ---
+*.xlsx
+*.xls
+data/raw/*.gdx
+!data/raw/.gitkeep
+
+# --- credentials: never commit ---
+gamslice.txt
+gurobi.lic
+*.lic
+.env
+*_key*
+
+# --- GAMS run artefacts (a listing here can exceed 4 GB) ---
+*.lst
+*.log
+*.lxi
+*.gdx
+*.g00
+225*/
+_gams_py_*
+
+# --- Python ---
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# --- generated ---
+results/**
+!results/.gitkeep
+!results/tables/.gitkeep
