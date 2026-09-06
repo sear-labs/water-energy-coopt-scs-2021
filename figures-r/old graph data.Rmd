@@ -1,0 +1,780 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+```{r}
+
+cost_df <- bind_rows(costs_list, .id = 'run')
+
+cost_df$Dollars <- round(cost_df$Dollars)
+
+
+
+cost_df <- arrange(cost_df, run, Dollars)
+
+cost_df$run <- as.numeric(cost_df$run)
+
+cost_df
+
+#Removes rows the Total Cost Rows
+cost_dfm <- cost_df[!(cost_df$Cost_Type == 'Total Cost'),]
+
+cost_dfm <- arrange(cost_dfm, run, Dollars)
+
+cost_dfm <- ddply(cost_dfm, 'run', transform, label_ypos=cumsum(Dollars)-0.5*Dollars)
+
+cost_dfm
+
+#Axis labels and Boundaries
+
+
+#Scatter plot of run vs. dollars with the different costs colored
+ggplot(cost_df, aes(x = run, y = Dollars)) + geom_point(aes(col = Cost_Type)) + theme_minimal() + 
+ labs(title='Plot of Costs vs. Runs', x='Runs', y ='Dollars')+coord_cartesian(xlim=c(0,150),ylim=c(0,2500)) + scale_x_continuous(breaks = seq(0,150,25))
+
+ggplot(cost_df, aes(x = run, y = Dollars)) + geom_point(aes(col = Cost_Type)) + geom_smooth(aes(color=Cost_Type),method=lm) + theme_minimal() +
+labs(title='Plot of Costs vs. Runs', x='Runs', y ='Dollars')+coord_cartesian(xlim=c(0,150),ylim=c(0,2500)) + scale_x_continuous(breaks = seq(0,150,25))
+#Box, violin, and Dot Charts
+
+ggplot(cost_df, aes(x = Cost_Type , y = Dollars)) + geom_boxplot(aes(fill = Cost_Type)) + theme_minimal()+
+labs(title='Plot of Various Costs', x='Runs', y ='Dollars')+coord_cartesian(ylim=c(0,2500)) 
+ggplot(cost_df, aes(x = Cost_Type , y = Dollars)) + geom_violin(aes(color = Cost_Type)) + theme_minimal()+
+labs(title='Plot of Various Costs', x='Runs', y ='Dollars')+coord_cartesian(ylim=c(0,2500)) 
+ggplot(cost_df, aes(x = Cost_Type , y = Dollars)) + geom_dotplot(aes(color = Cost_Type, fill = Cost_Type), binaxis = 'y', stackdir = 'center') + theme_minimal()+
+labs(title='Plot of Various Costs', x='Runs', y ='Dollars')+coord_cartesian(ylim=c(0,2500)) 
+
+
+
+
+#Stacked bar chart with 
+ggplot(cost_dfm, aes(x = run, y=Dollars, fill = Cost_Type, label = Dollars)) + geom_bar(stat = 'identity') + theme_minimal()+
+labs(title='Plot of Costs vs. Runs', x='Runs', y ='Dollars')+coord_cartesian(xlim=c(0,150),ylim=c(0,2500)) + scale_x_continuous(breaks = seq(0,150,25))
+ggplot(cost_dfm, aes(x = run, y=Dollars, fill = Cost_Type, label = Dollars)) + geom_bar(stat = 'identity') + coord_flip() + theme_minimal()+
+labs(title='Plot of Costs vs. Runs', x='Runs', y ='Dollars')+coord_cartesian(xlim=c(0,150),ylim=c(0,2500)) + scale_x_continuous(breaks = seq(0,150,25))
+ggplot(cost_dfm, aes(x = run, y=Dollars, fill = Cost_Type, label = Dollars)) + geom_bar(stat = 'identity') + coord_flip() + geom_text(aes(y = label_ypos, label=Dollars)) + theme_minimal()+
+labs(title='Plot of Costs vs. Runs', x='Runs', y ='Dollars')+coord_cartesian(xlim=c(0,150),ylim=c(0,3500)) + scale_x_continuous(breaks = seq(0,150,25))
+ggplot(cost_dfm, aes(x = run, y=Dollars, fill = Cost_Type, label = Dollars)) + geom_bar(stat = 'identity') +  geom_text(aes(y = label_ypos, label=Dollars)) + theme_minimal() +
+labs(title='Plot of Costs vs. Runs', x='Runs', y ='Dollars')+coord_cartesian(xlim=c(0,150),ylim=c(0,3500)) + scale_x_continuous(breaks = seq(0,150,25))
+```
+```{r}
+
+i_tech_df <- bind_rows(i_tech_list, .id = 'run')
+#i_tech_df$colour <- rep(c('b','b','b','b','b','r','r','r','r','r','r','b','b','b','b','b','b',),10)
+#i_tech_df$Dollars <- round(i_tech_df$Dollars)
+
+
+
+i_tech_df <- arrange(i_tech_df, run, Capacity)
+
+i_tech_df$run <- as.numeric(i_tech_df$run)
+
+i_tech_df
+
+#Removes rows the Total Cost Rows
+i_tech_dfm <- i_tech_df
+
+i_tech_dfm <- arrange(i_tech_dfm, run, Capacity)
+
+i_tech_dfm <- ddply(i_tech_dfm, 'run', transform, label_ypos=cumsum(Capacity)-0.5*Capacity)
+
+i_tech_dfm
+
+#Scatter plot of run vs. dollars with the different costs colored
+ggplot(i_tech_df, aes(x = run, y = Capacity)) + geom_point() + theme_minimal()+
+  labs(title='Tech Capacity vs. Runs', x='Runs', y ='Capacity (kWh or Gal')+coord_cartesian(xlim=c(0,150),ylim=c(0,15)) + scale_x_continuous(breaks = seq(0,150,25))
+
+ggplot(i_tech_df, aes(x = run, y = Capacity)) + geom_point(aes(col = Technology)) + geom_smooth(aes(color=Technology),method=lm) + theme_minimal()+
+  labs(title='Tech Capacity vs. Runs', x='Runs', y ='Capacity')+coord_cartesian(xlim=c(0,150),ylim=c(0,15)) + scale_x_continuous(breaks = seq(0,150,25))
+
+#Box, violin, and Dot Charts
+
+ggplot(i_tech_df, aes(x = Technology , y = Capacity)) + geom_boxplot(aes(fill = Technology)) + theme_minimal()+
+  labs(title='Tech Capacity vs. Technology', x='Technology', y ='Capacity')+coord_cartesian(ylim=c(0,15)) 
+
+ggplot(i_tech_df, aes(x = Technology , y = Capacity)) + geom_violin(aes(color = Technology)) + theme_minimal()+
+  labs(title='Tech Capacity vs. Technology', x='Technology', y ='Capacity')+coord_cartesian(ylim=c(0,15)) 
+
+ggplot(i_tech_df, aes(x = Technology , y = Capacity)) + geom_dotplot(aes(color = Technology, fill = Technology), binaxis = 'y', stackdir = 'center') + theme_minimal()+
+  labs(title='Tech Capacity vs. Technology', x='Technology', y ='Capacity')+coord_cartesian(ylim=c(0,15))
+
+
+
+#Stacked bar chart with 
+ggplot(i_tech_dfm, aes(x = run, y=Capacity, fill = Technology, label = Capacity)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='Tech Capacity vs. Runs', x='Runs', y ='Capacity')+coord_cartesian(xlim=c(0,150),ylim=c(0,15)) + scale_x_continuous(breaks = seq(0,150,25))
+
+ggplot(i_tech_dfm, aes(x = run, y=Capacity, fill = Technology, label = Capacity)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='Tech Capacity vs. Runs', x='Runs', y ='Capacity')  +coord_cartesian(xlim=c(0,15),ylim=c(0,150))  + coord_flip()
+
+ggplot(i_tech_dfm, aes(x = run, y=Capacity, fill = Technology, label = Capacity)) + geom_bar(stat = 'identity')  + geom_text(aes(y = label_ypos, label=Capacity)) + theme_minimal() +
+  labs(title='Tech Capacity vs. Runs', x='Runs', y ='Capacity')+coord_cartesian(xlim=c(0,150),ylim=c(0,15)) + scale_x_continuous(breaks = seq(0,150,25)) + coord_flip()
+
+ggplot(i_tech_dfm, aes(x = run, y=Capacity, fill = Technology, label = Capacity)) + geom_bar(stat = 'identity') +  geom_text(aes(y = label_ypos, label=Capacity)) + theme_minimal() +
+  labs(title='Tech Capacity vs. Runs', x='Runs', y ='Capacity')+coord_cartesian(xlim=c(0,150),ylim=c(0,15)) + scale_x_continuous(breaks = seq(0,150,25))
+```
+
+```{r}
+ww_water_prod_df <- bind_rows(ww_water_prod_list, .id = 'run')
+#ww_water_prod_df$colour <- rep(c('b','b','b','b','b','r','r','r','r','r','r','b','b','b','b','b','b',),10)
+#ww_water_prod_df$Dollars <- round(ww_water_prod_df$Dollars)
+
+
+
+
+ww_water_prod_df <- melt(ww_water_prod_df, id = c('run', 'month'))
+
+ww_water_prod_df$variable <- as.character(ww_water_prod_df$variable)
+
+ww_water_prod_df$value <- as.numeric(ww_water_prod_df$value)
+
+ww_water_prod_df_hrw <- as.data.frame(ww_water_prod_df[(ww_water_prod_df$variable == 'H_RW'),])
+
+
+ww_water_prod_df
+
+
+
+
+#Removes rows the Total Cost Rows
+ww_water_prod_dfm <- as.data.frame(ww_water_prod_df)
+
+
+
+ww_water_prod_dfm <- as.data.frame(ww_water_prod_dfm[,-1])
+
+ww_water_prod_dfm
+
+ww_water_prod_dfm <- aggregate(ww_water_prod_dfm$value, by = list(ww_water_prod_dfm$month, ww_water_prod_dfm$variable), FUN = sum, na.rm = TRUE, na.action = NULL)
+
+
+ww_water_prod_dfm$value <- ww_water_prod_dfm$x
+
+ww_water_prod_dfm$month <- ww_water_prod_dfm$Group.1
+
+ww_water_prod_dfm$variable <- ww_water_prod_dfm$Group.2
+
+
+
+
+
+ww_water_prod_dfm
+
+#Scatter plot of run vs. dollars with the different costs colored
+ggplot(ww_water_prod_df, aes(x = month , y = value)) + geom_point(aes(col = variable)) + theme_minimal()+
+  labs(title='White Water Production by Month', x='Month', y ='Gallons')+coord_cartesian(ylim=c(0,6000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(ww_water_prod_df, aes(x = month, y = value)) + geom_point(aes(col = variable)) + geom_smooth(aes(col=variable),method=lm) + theme_minimal()+
+  labs(title='White Water Production by Month', x='Month', y ='Gallons') + scale_x_continuous(breaks=seq(1,12,1))
+
+
+ggplot(ww_water_prod_df_hrw, aes(x = month, y = value)) + geom_point(aes(col = run)) + geom_smooth(aes(col=run),method=lm) + theme_minimal()+
+  labs(title='H_RW Production by Month', x='Month', y ='Gallons') + scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+#Stacked Area
+ggplot(ww_water_prod_dfm, aes(x = month, y = value, group = variable)) + geom_area(aes(y=value, fill = variable ))+theme_minimal()+
+  labs(title='White Water Production by Month', x='Month', y ='Gallons')+coord_cartesian(ylim=c(0,450000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(ww_water_prod_df_hrw, aes(x = month, y = value, group = run)) + geom_area(aes(y=value, fill = run ))+theme_minimal()+
+  labs(title='H_RW Production by Month', x='Month', y ='Gallons') + scale_x_continuous(breaks=seq(1,12,1))
+
+#Line Graph
+ggplot(ww_water_prod_dfm, aes(x = month, y = value, group = variable)) + geom_line(aes(linetype=variable, color = variable))+theme_minimal()+
+  labs(title='White Water Production by Month', x='Month', y ='Gallons')+coord_cartesian(ylim=c(0,1000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(ww_water_prod_df_hrw, aes(x = month, y = value, group = run)) + geom_line(aes(linetype=run, color = run))+theme_minimal()+
+  labs(title='H_RW Production by Month', x='Month', y ='Gallons') + scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+
+#Stacked bar chart with 
+ggplot(ww_water_prod_dfm, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='White Water Production by Month', x='Month', y ='Gallons')+coord_cartesian(ylim=c(0,450000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(ww_water_prod_dfm, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + coord_flip() + theme_minimal()+
+  labs(title='White Water Production by Month', x='Month', y ='Gallons')+coord_cartesian(ylim=c(0,450000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(ww_water_prod_df_hrw, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + theme_minimal()+
+  labs(title='H_RW Production by Month', x='Month', y ='Gallons') + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(ww_water_prod_df_hrw, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + coord_flip() + theme_minimal()+
+  labs(title='H_RW Production by Month', x='Month', y ='Gallons') + scale_x_continuous(breaks=seq(1,12,1))
+```
+```{r}
+elc_prod_df <- bind_rows(elc_prod_list, .id = 'run')
+#elc_prod_df$colour <- rep(c('b','b','b','b','b','r','r','r','r','r','r','b','b','b','b','b','b',),10)
+#elc_prod_df$Dollars <- round(elc_prod_df$Dollars)
+
+
+
+
+elc_prod_df <- melt(elc_prod_df, id = c('run', 'month'))
+
+elc_prod_df$variable <- as.character(elc_prod_df$variable)
+
+elc_prod_df$value <- as.numeric(elc_prod_df$value)
+#elc_prod_df$run <- as.numeric(elc_prod_df$run)
+
+elc_prod_df_hpv <- as.data.frame(elc_prod_df[(elc_prod_df$variable == 'H_PV'),])
+
+elc_prod_df
+
+
+
+
+
+
+#Removes rows the Total Cost Rows
+elc_prod_dfm2 <- elc_prod_dfm <- as.data.frame(elc_prod_df)
+
+
+
+elc_prod_dfm <- as.data.frame(elc_prod_dfm[,-1])
+
+
+
+elc_prod_dfm <- aggregate(elc_prod_dfm$value, by = list(elc_prod_dfm$month, elc_prod_dfm$variable), FUN = sum, na.rm = TRUE, na.action = NULL)
+
+
+elc_prod_dfm$value <- elc_prod_dfm$x
+
+elc_prod_dfm$month <- elc_prod_dfm$Group.1
+
+elc_prod_dfm$variable <- elc_prod_dfm$Group.2
+
+#Gets rids of Na values and extremely large values
+elc_prod_dfm2 <- as.data.frame(na.omit(elc_prod_dfm2))
+
+elc_prod_dfm2 <- elc_prod_dfm2[!(elc_prod_dfm2$value >= 100000),]
+
+elc_prod_dfm2
+
+#Creates new HPV dataframe
+elc_prod_df_hpv2 <- as.data.frame(elc_prod_dfm2[(elc_prod_dfm2$variable == 'H_PV'),])
+
+#Creates new aggregated dataframe
+
+elc_prod_dfm2 <- as.data.frame(elc_prod_dfm2[,-1])
+
+
+
+elc_prod_dfm2 <- aggregate(elc_prod_dfm2$value, by = list(elc_prod_dfm2$month, elc_prod_dfm2$variable), FUN = sum, na.rm = TRUE, na.action = NULL)
+
+
+elc_prod_dfm2$value <- elc_prod_dfm2$x
+
+elc_prod_dfm2$month <- elc_prod_dfm2$Group.1
+
+elc_prod_dfm2$variable <- elc_prod_dfm2$Group.2
+
+elc_prod_dfm2
+
+
+
+
+
+
+
+
+
+
+elc_prod_dfm
+
+#Scatter plot of run vs. dollars with the different costs colored
+ggplot(elc_prod_df, aes(x = month , y = value)) + geom_point(aes(col = variable)) + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_df, aes(x = month, y = value)) + geom_point(aes(col = variable)) + geom_smooth(aes(col=variable),method=lm) + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+
+
+ggplot(elc_prod_df_hpv, aes(x = month, y = value)) + geom_point(aes(col = run)) + geom_smooth(aes(col=run),method=lm) + theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+#Stacked Area
+ggplot(elc_prod_dfm, aes(x = month, y = value, group = variable)) + geom_area(aes(y=value, fill = variable ))+theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,150000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_dfm2, aes(x = month, y = value, group = variable)) + geom_area(aes(y=value, fill = variable ))+theme_minimal()+
+  labs(title='Electricity Production by Month', x='Month', y ='kWh') + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_df_hpv, aes(x = month, y = value, group = run)) + geom_area(aes(y=value, fill = run ))+theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+ggplot(elc_prod_df_hpv2, aes(x = month, y = value, group = run)) + geom_area(aes(y=value, fill = run ))+theme_minimal()+
+  labs(title='H_PV Production by Month', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+
+
+#Line Graph
+ggplot(elc_prod_dfm, aes(x = month, y = value, group = variable)) + geom_line(aes(linetype=variable, color = variable))+theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,3000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_df_hpv, aes(x = month, y = value, group = run)) + geom_line(aes(linetype=run, color = run))+theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh') +coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+
+#Stacked bar chart with 
+ggplot(elc_prod_dfm, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,150000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_dfm2, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='Electricity Production by Month', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_dfm, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + coord_flip() + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh') + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_df_hpv, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + theme_minimal() +
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh') +coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_df_hpv, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + coord_flip() + theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_df_hpv2, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + coord_flip() + theme_minimal()+
+  labs(title='H_PV Production by Month', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))
+```
+```{r}
+mixeddata <- read_excel("indata_test.xlsx", sheet='Results')
+mixeddata
+
+costs <- mixeddata[1:4,1:2]
+names(costs) <- c('Cost_Type', 'Dollars')
+costs
+
+
+
+
+elc_frac <- mixeddata[6:7,5:16]
+#flips rows and columns
+elc_frac <- as.data.frame(t(elc_frac))
+
+names(elc_frac) <- c('Technology', "Fraction")
+rownames(elc_frac) <- NULL
+
+#formatting columns by appropiate class
+elc_frac$Technology <- as.character(elc_frac$Technology)
+elc_frac$Fraction <- as.numeric(as.character(elc_frac$Fraction))
+
+elc_frac
+
+water_frac <- mixeddata[11:12, 5:16]
+water_frac <- as.data.frame(t(water_frac))
+
+names(water_frac) <- c('Technology', "Fraction")
+rownames(water_frac) <- NULL
+
+#formatting columns by appropiate class
+water_frac$Technology <- as.character(water_frac$Technology)
+water_frac$Fraction <- as.numeric(as.character(water_frac$Fraction))
+
+#water_frac
+
+
+
+elc_prod <- mixeddata[118:5000, 5:18]
+
+names(elc_prod) <- c('Technology', 'Hour', '1', "2", "3", "4", "5", "6","7","8","9","10","11","12")
+
+elc_prod <- as.data.frame(elc_prod[-1,])
+elc_prod[,3:14] <- as.data.frame(sapply(elc_prod, as.numeric))[,3:14]
+
+elc_prod
+
+
+ww_water_prod <- mixeddata[10118:15118, 5:18]
+
+names(ww_water_prod) <- c('Technology', 'Hour', '1', "2", "3", "4", "5", "6","7","8","9","10","11","12")
+
+ww_water_prod <- as.data.frame(ww_water_prod[-1,])
+ww_water_prod[,3:14] <- as.data.frame(sapply(ww_water_prod, as.numeric))[,3:14]
+
+ww_water_prod
+
+
+
+gw_water_prod <- mixeddata[20118:25118, 5:18]
+
+names(gw_water_prod) <- c('Technology', 'Hour', '1', "2", "3", "4", "5", "6","7","8","9","10","11","12")
+
+gw_water_prod <- as.data.frame(gw_water_prod[-1,])
+gw_water_prod[,3:14] <- as.data.frame(sapply(gw_water_prod, as.numeric))[,3:14]
+
+gw_water_prod
+
+
+demand <- mixeddata[30118:35118, 5:18]
+
+names(demand) <- c('Fuel', 'Hour', '1', "2", "3", "4", "5", "6","7","8","9","10","11","12")
+
+demand <- as.data.frame(demand[-1,])
+demand[,3:14] <- as.data.frame(sapply(demand, as.numeric))[,3:14]
+
+
+demand
+```
+
+
+```{r}
+org <- ww_water_prod
+
+
+
+ww_water_prod$Hour <- as.factor(ww_water_prod$Hour)
+ww_water_prod$Hour <- as.numeric(ww_water_prod$Hour)
+ww_water_prod <- ww_water_prod[complete.cases(ww_water_prod[,2]),]
+ww_water_prod <- melt(ww_water_prod, id = c("Technology", "Hour"))
+
+ww_water_prod
+
+i <- 1
+while(i <= nrow(ww_water_prod)){
+  if(ww_water_prod$variable[i] == 2){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705
+  }
+  if(ww_water_prod$variable[i] == 3){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*2
+  }
+  if(ww_water_prod$variable[i] == 4){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*3
+  }
+  if(ww_water_prod$variable[i] == 5){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*4
+  }
+  if(ww_water_prod$variable[i] == 6){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*5
+  }
+  if(ww_water_prod$variable[i] == 7){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*6
+  }
+  if(ww_water_prod$variable[i] == 8){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*7
+  }
+  if(ww_water_prod$variable[i] == 9){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*8
+  }
+  if(ww_water_prod$variable[i] == 10){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*9
+  }
+  if(ww_water_prod$variable[i] == 11){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*10
+  }
+  if(ww_water_prod$variable[i] == 12){
+    ww_water_prod$Hour[i] <- ww_water_prod$Hour[i] + 705*11
+  }
+  i <- i + 1
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+```{r}
+ww_water_prod
+
+#Scatter plot of run vs. dollars with the different costs colored
+ggplot(ww_water_prod, aes(x = Hour , y = value)) + geom_point(aes(col = Technology)) + theme_minimal()+
+  labs(title='White Water Production by Hour', x='Hour', y ='Gallons') 
+
+
+#Stacked Area
+ggplot(ww_water_prod, aes(x = Hour, y = value, group = Technology)) + geom_area(aes(y=value, fill = Technology ))+theme_minimal()+
+  labs(title='White Water Production by Hour', x='Hour', y ='Gallons')
+
+
+#Line Graph
+ggplot(ww_water_prod, aes(x = Hour, y = value, group = Technology)) + geom_line(aes(linetype=Technology, color = Technology))+theme_minimal()+
+  labs(title='White Water Production by Hour', x='Hour', y ='Gallons')
+
+
+#Stacked bar chart with 
+ggplot(ww_water_prod, aes(x = Hour, y=value, fill = Technology, label = value)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='White Water Production by Hour', x='Hour', y ='Gallons')
+
+ggplot(ww_water_prod, aes(x = Hour, y=value, fill = Technology, label = value)) + geom_bar(stat = 'identity') + coord_flip() + theme_minimal()+
+  labs(title='White Water Production by Hour', x='Hour', y ='Gallons')
+```
+
+```{r}
+elc_prod_df <- bind_rows(elc_prod_list, .id = 'run')
+#elc_prod_df$colour <- rep(c('b','b','b','b','b','r','r','r','r','r','r','b','b','b','b','b','b',),10)
+#elc_prod_df$Dollars <- round(elc_prod_df$Dollars)
+
+
+
+
+elc_prod_df <- melt(elc_prod_df, id = c('run', 'month'))
+
+elc_prod_df$variable <- as.character(elc_prod_df$variable)
+
+elc_prod_df$value <- as.numeric(elc_prod_df$value)
+#elc_prod_df$run <- as.numeric(elc_prod_df$run)
+
+elc_prod_df_hpv <- as.data.frame(elc_prod_df[(elc_prod_df$variable == 'H_PV'),])
+
+elc_prod_df
+
+
+
+
+
+
+#Removes rows the Total Cost Rows
+elc_prod_dfm2 <- elc_prod_dfm <- as.data.frame(elc_prod_df)
+
+
+
+elc_prod_dfm <- as.data.frame(elc_prod_dfm[,-1])
+
+
+
+elc_prod_dfm <- aggregate(elc_prod_dfm$value, by = list(elc_prod_dfm$month, elc_prod_dfm$variable), FUN = sum, na.rm = TRUE, na.action = NULL)
+
+
+elc_prod_dfm$value <- elc_prod_dfm$x
+
+elc_prod_dfm$month <- elc_prod_dfm$Group.1
+
+elc_prod_dfm$variable <- elc_prod_dfm$Group.2
+
+#Gets rids of Na values and extremely large values
+elc_prod_dfm2 <- as.data.frame(na.omit(elc_prod_dfm2))
+
+elc_prod_dfm2 <- elc_prod_dfm2[!(elc_prod_dfm2$value >= 100000),]
+
+elc_prod_dfm2
+
+#Creates new HPV dataframe
+elc_prod_df_hpv2 <- as.data.frame(elc_prod_dfm2[(elc_prod_dfm2$variable == 'H_PV'),])
+
+#Creates new aggregated dataframe
+
+elc_prod_dfm2 <- as.data.frame(elc_prod_dfm2[,-1])
+
+
+
+elc_prod_dfm2 <- aggregate(elc_prod_dfm2$value, by = list(elc_prod_dfm2$month, elc_prod_dfm2$variable), FUN = sum, na.rm = TRUE, na.action = NULL)
+
+
+elc_prod_dfm2$value <- elc_prod_dfm2$x
+
+elc_prod_dfm2$month <- elc_prod_dfm2$Group.1
+
+elc_prod_dfm2$variable <- elc_prod_dfm2$Group.2
+
+elc_prod_dfm2
+
+
+
+
+
+
+
+
+
+
+elc_prod_dfm
+
+#Scatter plot of run vs. dollars with the different costs colored
+ggplot(elc_prod_df, aes(x = month , y = value)) + geom_point(aes(col = variable)) + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_df, aes(x = month, y = value)) + geom_point(aes(col = variable)) + geom_smooth(aes(col=variable),method=lm) + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+
+
+ggplot(elc_prod_df_hpv, aes(x = month, y = value)) + geom_point(aes(col = run)) + geom_smooth(aes(col=run),method=lm) + theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+#Stacked Area
+ggplot(elc_prod_dfm, aes(x = month, y = value, group = variable)) + geom_area(aes(y=value, fill = variable ))+theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,150000)) + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_dfm2, aes(x = month, y = value, group = variable)) + geom_area(aes(y=value, fill = variable ))+theme_minimal()+
+  labs(title='Electricity Production by Month', x='Month', y ='kWh') + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_df_hpv, aes(x = month, y = value, group = run)) + geom_area(aes(y=value, fill = run ))+theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+ggplot(elc_prod_df_hpv2, aes(x = month, y = value, group = run)) + geom_area(aes(y=value, fill = run ))+theme_minimal()+
+  labs(title='H_PV Production by Month', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+
+
+#Line Graph
+ggplot(elc_prod_dfm, aes(x = month, y = value, group = variable)) + geom_line(aes(linetype=variable, color = variable))+theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,3000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_df_hpv, aes(x = month, y = value, group = run)) + geom_line(aes(linetype=run, color = run))+theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh') +coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))+theme(legend.position = "none")
+
+
+#Stacked bar chart with 
+ggplot(elc_prod_dfm, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh')+coord_cartesian(ylim=c(0,150000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_dfm2, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + theme_minimal()+
+  labs(title='Electricity Production by Month', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_dfm, aes(x = month, y=value, fill = variable, label = value)) + geom_bar(stat = 'identity') + coord_flip() + theme_minimal()+
+  labs(title='Electricity Production by Month \n with Outliers', x='Month', y ='kWh') + scale_x_continuous(breaks=seq(1,12,1))
+
+ggplot(elc_prod_df_hpv, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + theme_minimal() +
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh') +coord_cartesian(ylim=c(0,2000)) + scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_df_hpv, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + coord_flip() + theme_minimal()+
+  labs(title='H_PV Production by Month \n with Outliers', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))
+ggplot(elc_prod_df_hpv2, aes(x = month, y=value, fill = run, label = value)) + geom_bar(stat = 'identity')  + coord_flip() + theme_minimal()+
+  labs(title='H_PV Production by Month', x='Month', y ='kWh')+ scale_x_continuous(breaks=seq(1,12,1))
+```
+
+
+```{r}
+elc_frac <- mixeddata[6:7,5:16]
+#flips rows and columns
+elc_frac <- as.data.frame(t(elc_frac))
+
+names(elc_frac) <- c('Technology', "Fraction")
+rownames(elc_frac) <- NULL
+
+#formatting columns by appropiate class
+elc_frac$Technology <- as.character(elc_frac$Technology)
+elc_frac$Fraction <- as.numeric(as.character(elc_frac$Fraction))
+
+elc_frac
+
+water_frac <- mixeddata[11:12, 5:16]
+water_frac <- as.data.frame(t(water_frac))
+
+names(water_frac) <- c('Technology', "Fraction")
+rownames(water_frac) <- NULL
+
+#formatting columns by appropiate class
+water_frac$Technology <- as.character(water_frac$Technology)
+water_frac$Fraction <- as.numeric(as.character(water_frac$Fraction))
+
+water_frac
+
+tank_stor <- mixeddata[16:21, 5:17]
+tank_stor <- as.data.frame(t(tank_stor))
+
+names(tank_stor) <- c('Tank', "Storage_Level")
+rownames(tank_stor) <- NULL
+
+#formatting columns by appropiate class
+tank_stor$Tank <- as.character(tank_stor$Tank)
+tank_stor$`Storage Level` <- as.numeric(as.character(tank_stor$`Storage_Level`))
+
+
+#tank_stor
+
+bat_stor <- mixeddata[21:26, 5:17]
+bat_stor <- as.data.frame(t(bat_stor))
+
+names(bat_stor) <- c('Battery', "Storage_Level")
+rownames(bat_stor) <- NULL
+
+#formatting columns by appropiate class
+bat_stor$Tank <- as.character(bat_stor$Battery)
+bat_stor$`Storage Level` <- as.numeric(as.character(bat_stor$`Storage_Level`))
+
+#bat_stor
+
+elc_prod <- mixeddata[27:31, 5:17]
+
+names(elc_prod) <- c((0:12))
+names(elc_prod)[1] <- 'Technology'
+
+elc_prod[,2:13] <- as.data.frame(sapply(elc_prod, as.numeric))[,2:13]
+
+elc_prod <- as.data.frame(t(elc_prod))
+
+names(elc_prod) <- as.character(unlist(elc_prod[1,]))
+
+elc_prod <- as.data.frame(elc_prod[-1,])
+
+elc_prod$month <- c(1:12)
+
+elc_prod
+
+ww_water_prod <- mixeddata[47:64, 5:17]
+
+names(ww_water_prod) <- c((0:12))
+names(ww_water_prod)[1] <- 'Technology'
+
+ww_water_prod[,2:13] <- as.data.frame(sapply(ww_water_prod, as.numeric))[,2:13]
+
+ww_water_prod <- as.data.frame(t(ww_water_prod))
+
+names(ww_water_prod) <- as.character(unlist(ww_water_prod[1,]))
+
+ww_water_prod <- as.data.frame(ww_water_prod[-1,])
+
+ww_water_prod$month <- c(1:12)
+
+ww_water_prod
+
+gw_water_prod <- mixeddata[67:74, 5:17]
+
+names(gw_water_prod) <- c((0:12))
+names(gw_water_prod)[1] <- 'Technology'
+
+gw_water_prod[,2:13] <- as.data.frame(sapply(gw_water_prod, as.numeric))[,2:13]
+
+gw_water_prod <- as.data.frame(t(gw_water_prod))
+
+names(gw_water_prod) <- as.character(unlist(gw_water_prod[1,]))
+
+gw_water_prod <- as.data.frame(gw_water_prod[-1,])
+
+gw_water_prod$month <- c(1:12)
+
+#gw_water_prod
+
+ww_energy <- mixeddata[77:84, 5:17]
+
+names(ww_energy) <- c((0:12))
+names(ww_energy)[1] <- 'Technology'
+
+ww_energy[,2:13] <- as.data.frame(sapply(ww_energy, as.numeric))[,2:13]
+#ww_energy
+
+gw_energy <- mixeddata[87:94, 5:17]
+
+names(gw_energy) <- c((0:12))
+names(gw_energy)[1] <- 'Technology'
+
+gw_energy[,2:13] <- as.data.frame(sapply(gw_energy, as.numeric))[,2:13]
+#gw_energy
+
+bat_energy <- mixeddata[97:104, 5:17]
+
+names(bat_energy) <- c((0:12))
+names(bat_energy)[1] <- 'Technology'
+
+bat_energy[,2:13] <- as.data.frame(sapply(bat_energy, as.numeric))[,2:13]
+#bat_energy
+
+demand <- mixeddata[107:108, 5:17]
+
+names(demand) <- c((0:12))
+names(demand)[1] <- 'Fuel'
+
+demand[,2:13] <- as.data.frame(sapply(demand, as.numeric))[,2:13]
+
+demand
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

@@ -1,0 +1,2776 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(ggplot2)
+library(magrittr)
+library(dplyr)
+library(plyr)
+#library(rowr)
+#library(xlsx)
+#library(openxlsx)
+library(readxl)
+
+library(svMisc)
+library(RColorBrewer)
+library(scales)
+library(gridExtra)
+library(ggpubr)
+
+
+
+
+
+```
+
+```{r}
+
+foldername <- 'CoOp/'
+
+runlabel <- '32 Houses'
+
+
+filename <- paste0(foldername,'indata1.xlsx')
+mixeddata <- read_excel(filename, sheet='Results')
+
+mixeddata_1b <- mixeddata
+
+costs <- mixeddata[1:4,1:2]
+names(costs) <- c('Cost_Type', 'Dollars')
+costs$Scenario <- runlabel
+costs_1b <- costs
+
+
+i_tech <- mixeddata[1:2, 5:27]
+names(i_tech) <- c(1:23)
+#flips rows and columns (transpose)
+i_tech <- as.data.frame(t(i_tech))
+
+names(i_tech) <- c('Technology', "Capacity")
+rownames(i_tech) <- NULL
+
+#formatting columns as correct class
+i_tech$Technology <- as.character(i_tech$Technology)
+
+#since this is a factor have to convert it to a character before converting it to a number
+i_tech$`Capacity` <- as.numeric(as.character(i_tech$`Capacity`))
+
+
+
+
+capacity <- i_tech
+
+capacity$Scenario <- runlabel 
+capacity_1b <- capacity
+
+#Production of Electricity by Tech
+
+prod_elc <- mixeddata[27:34,5:17]
+
+names(prod_elc) <- c((0:12))
+names(prod_elc)[1] <- 'Tech'
+
+
+
+prod_elc[,2:13] <- as.data.frame(sapply(prod_elc, as.numeric))[,2:13]
+#prod_elc[is.na(prod_elc)] <- '0'
+
+prod_util <- subset(prod_elc, Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5')
+prod_tech <- subset(prod_elc, !(Tech == '0' |Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5'))
+
+eutil_math <- prod_util[,-1]
+eutil_math <- colSums(eutil_math)
+
+prod_util[1,2] <- sum(eutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+etech_math <- prod_tech[,-1]
+etech_math <- rowSums(etech_math)
+
+prod_tech[,2] <- etech_math
+
+prod_tech <- prod_tech[,1:2]
+
+
+prod_elc <- rbind(prod_tech,prod_util)
+prod_elc_1b <- prod_elc
+
+#Produced Water
+
+prod_water <- mixeddata[47:54,5:17]
+
+names(prod_water) <- c((0:12))
+names(prod_water)[1] <- 'Tech'
+
+prod_water[,2:13] <- as.data.frame(sapply(prod_water, as.numeric))[,2:13]
+#prod_water[is.na(prod_water)] <- '0'
+
+prod_util <- subset(prod_water, Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5')
+prod_tech <- subset(prod_water, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+wutil_math <- prod_util[,-1]
+wutil_math <- colSums(wutil_math)
+
+
+
+prod_util[1,2] <- sum(wutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+wtech_math <- prod_tech[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_tech[,2] <- wtech_math
+
+prod_tech <- prod_tech[,1:2]
+
+# Gets the greywater
+
+prod_water1 <- mixeddata[67:70,5:17]
+
+names(prod_water1) <- c((0:12))
+names(prod_water1)[1] <- 'Tech'
+
+
+#prod_water1[is.na(prod_water1)] <- '0'
+prod_water1[,2:13] <- as.data.frame(sapply(prod_water1, as.numeric))[,2:13]
+
+prod_water1 <- subset(prod_water1, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+
+
+wtech_math <- prod_water1[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_water1[,2] <- wtech_math
+
+prod_water1 <- prod_water1[,1:2]
+
+prod_water <- rbind(prod_tech,prod_util,prod_water1)
+
+prod_water_1b <- prod_water
+
+#other data
+other <- mixeddata[6:10,1:2]
+names(other) <- c('Data_Type', 'Value')
+other <- other[-3,]
+
+frac <- other
+frac <- frac[-c(1:2),]
+names(frac) <- c('Data_Type', 'Value')
+
+frac$Scenario <- runlabel
+frac_1b <- frac
+
+
+#Curtailment
+
+curt_elc <- mixeddata[77:82,5:17]
+names(curt_elc) <- c((0:12))
+names(curt_elc)[1] <- 'Tech'
+
+#curt_elc[is.na(curt_elc)] <- '0'
+curt_elc[,2:13] <- as.data.frame(sapply(curt_elc, as.numeric))[,2:13]
+curt_elc <- subset(curt_elc, !(Tech == '0'))
+
+
+
+ctech_math <- curt_elc[,-1]
+ctech_math <- rowSums(ctech_math)
+
+curt_elc[,2] <- ctech_math
+
+curt_elc <- curt_elc[,1:2]
+
+curt_elc_1b <- curt_elc
+
+#Curtailment Water
+
+curt_water <- mixeddata[87:92,5:17]
+names(curt_water) <- c((0:12))
+names(curt_water)[1] <- 'Tech'
+
+
+#curt_water[is.na(curt_water)] <- '0'
+
+curt_water[,2:13] <- as.data.frame(sapply(curt_water, as.numeric))[,2:13]
+curt_water <- subset(curt_water, !(Tech == '0'))
+
+
+ctech_math <- curt_water[,-1]
+ctech_math <- rowSums(ctech_math)
+
+curt_water[,2] <- ctech_math
+
+curt_water <- curt_water[,1:2]
+
+curt_water_1b <- curt_water
+
+
+#Purchase
+
+purchase <- mixeddata[16:17,5:27]
+names(purchase) <- c(1:23)
+purchase <- as.data.frame(t(purchase))
+
+names(purchase) <- c('Data', 'Value')
+rownames(purchase) <- NULL
+
+#formatting columns as correct class
+purchase$Data <- as.character(purchase$Data)
+
+#since this is a factor have to convert it to a character before converting it to a number
+purchase$Value <- as.numeric(as.character((purchase$Value)))
+
+purchase_1b <- purchase
+
+demand <- mixeddata[107:108, 5:17]
+
+names(demand) <- c((0:12))
+names(demand)[1] <- 'Fuel'
+
+demand[,2:13] <- as.data.frame(sapply(demand, as.numeric))[,2:13]
+
+demand$Scenario <- runlabel
+
+demand_1b <- demand
+
+
+```
+
+```{r}
+runlabel <- '320 Houses'
+
+filename <- paste0(foldername,'indata2.xlsx')
+mixeddata <- read_excel(filename, sheet='Results')
+
+mixeddata_10b <- mixeddata
+
+costs <- mixeddata[1:4,1:2]
+names(costs) <- c('Cost_Type', 'Dollars')
+costs$Scenario <- runlabel
+costs_10b <- costs
+
+
+i_tech <- mixeddata[1:2, 5:27]
+names(i_tech) <- c(1:23)
+#flips rows and columns (transpose)
+i_tech <- as.data.frame(t(i_tech))
+
+names(i_tech) <- c('Technology', "Capacity")
+rownames(i_tech) <- NULL
+
+#formatting columns as correct class
+i_tech$Technology <- as.character(i_tech$Technology)
+
+#since this is a factor have to convert it to a character before converting it to a number
+i_tech$`Capacity` <- as.numeric(as.character(i_tech$`Capacity`))
+
+
+
+
+capacity <- i_tech
+
+capacity$Scenario <- runlabel 
+capacity_10b <- capacity
+
+#Production of Electricity by Tech
+
+prod_elc <- mixeddata[27:34,5:17]
+
+names(prod_elc) <- c((0:12))
+names(prod_elc)[1] <- 'Tech'
+
+
+
+prod_elc[,2:13] <- as.data.frame(sapply(prod_elc, as.numeric))[,2:13]
+#prod_elc[is.na(prod_elc)] <- '0'
+
+prod_util <- subset(prod_elc, Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5')
+prod_tech <- subset(prod_elc, !(Tech == '0' |Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5'))
+
+eutil_math <- prod_util[,-1]
+eutil_math <- colSums(eutil_math)
+
+prod_util[1,2] <- sum(eutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+etech_math <- prod_tech[,-1]
+etech_math <- rowSums(etech_math)
+
+prod_tech[,2] <- etech_math
+
+prod_tech <- prod_tech[,1:2]
+
+
+prod_elc <- rbind(prod_tech,prod_util)
+prod_elc_10b <- prod_elc
+
+#Produced Water
+
+prod_water <- mixeddata[47:54,5:17]
+
+names(prod_water) <- c((0:12))
+names(prod_water)[1] <- 'Tech'
+
+prod_water[,2:13] <- as.data.frame(sapply(prod_water, as.numeric))[,2:13]
+#prod_water[is.na(prod_water)] <- '0'
+
+prod_util <- subset(prod_water, Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5')
+prod_tech <- subset(prod_water, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+wutil_math <- prod_util[,-1]
+wutil_math <- colSums(wutil_math)
+
+
+
+prod_util[1,2] <- sum(wutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+wtech_math <- prod_tech[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_tech[,2] <- wtech_math
+
+prod_tech <- prod_tech[,1:2]
+
+# Gets the greywater
+
+prod_water1 <- mixeddata[67:70,5:17]
+
+names(prod_water1) <- c((0:12))
+names(prod_water1)[1] <- 'Tech'
+
+
+#prod_water1[is.na(prod_water1)] <- '0'
+
+prod_water1[,2:13] <- as.data.frame(sapply(prod_water1, as.numeric))[,2:13]
+
+prod_water1 <- subset(prod_water1, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+
+
+wtech_math <- prod_water1[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_water1[,2] <- wtech_math
+
+prod_water1 <- prod_water1[,1:2]
+
+prod_water <- rbind(prod_tech,prod_util,prod_water1)
+
+prod_water_10b <- prod_water
+
+#other data
+other <- mixeddata[6:10,1:2]
+names(other) <- c('Data_Type', 'Value')
+other <- other[-3,]
+
+frac <- other
+frac <- frac[-c(1:2),]
+names(frac) <- c('Data_Type', 'Value')
+
+frac$Scenario <- runlabel
+frac_10b <- frac
+
+
+#Curtailment
+
+curt_elc <- mixeddata[77:82,5:17]
+names(curt_elc) <- c((0:12))
+names(curt_elc)[1] <- 'Tech'
+
+
+#curt_elc[is.na(curt_elc)] <- '0'
+
+curt_elc[,2:13] <- as.data.frame(sapply(curt_elc, as.numeric))[,2:13]
+curt_elc <- subset(curt_elc, !(Tech == '0'))
+
+ctech_math <- curt_elc[,-1]
+ctech_math <- rowSums(ctech_math)
+
+curt_elc[,2] <- ctech_math
+
+curt_elc <- curt_elc[,1:2]
+
+curt_elc_10b <- curt_elc
+
+#Curtailment Water
+
+curt_water <- mixeddata[87:92,5:17]
+names(curt_water) <- c((0:12))
+names(curt_water)[1] <- 'Tech'
+
+
+#curt_water[is.na(curt_water)] <- '0'
+
+curt_water[,2:13] <- as.data.frame(sapply(curt_water, as.numeric))[,2:13]
+curt_water <- subset(curt_water, !(Tech == '0'))
+
+ctech_math <- curt_water[,-1]
+ctech_math <- rowSums(ctech_math)
+
+curt_water[,2] <- ctech_math
+
+curt_water <- curt_water[,1:2]
+
+curt_water_10b <- curt_water
+
+
+#Purchase
+
+purchase <- mixeddata[16:17,5:27]
+names(purchase) <- c(1:23)
+purchase <- as.data.frame(t(purchase))
+
+names(purchase) <- c('Data', 'Value')
+rownames(purchase) <- NULL
+
+#formatting columns as correct class
+purchase$Data <- as.character(purchase$Data)
+
+#since this is a factor have to convert it to a character before converting it to a number
+purchase$Value <- as.numeric(as.character((purchase$Value)))
+
+purchase_10b <- purchase
+
+demand <- mixeddata[107:108, 5:17]
+
+names(demand) <- c((0:12))
+names(demand)[1] <- 'Fuel'
+
+demand[,2:13] <- as.data.frame(sapply(demand, as.numeric))[,2:13]
+
+demand$Scenario <- runlabel
+
+demand_10b <- demand
+```
+
+```{r}
+runlabel <- '3200 Houses'
+
+filename <- paste0(foldername,'indata3.xlsx')
+mixeddata <- read_excel(filename, sheet='Results')
+
+mixeddata_100b <- mixeddata
+
+costs <- mixeddata[1:4,1:2]
+names(costs) <- c('Cost_Type', 'Dollars')
+costs$Scenario <- runlabel
+costs_100b <- costs
+
+
+i_tech <- mixeddata[1:2, 5:27]
+names(i_tech) <- c(1:23)
+#flips rows and columns (transpose)
+i_tech <- as.data.frame(t(i_tech))
+
+names(i_tech) <- c('Technology', "Capacity")
+rownames(i_tech) <- NULL
+
+#formatting columns as correct class
+i_tech$Technology <- as.character(i_tech$Technology)
+
+#since this is a factor have to convert it to a character before converting it to a number
+i_tech$`Capacity` <- as.numeric(as.character(i_tech$`Capacity`))
+
+
+
+
+capacity <- i_tech
+
+capacity$Scenario <- runlabel 
+capacity_100b <- capacity
+
+#Production of Electricity by Tech
+
+prod_elc <- mixeddata[27:34,5:17]
+
+names(prod_elc) <- c((0:12))
+names(prod_elc)[1] <- 'Tech'
+
+
+
+prod_elc[,2:13] <- as.data.frame(sapply(prod_elc, as.numeric))[,2:13]
+#prod_elc[is.na(prod_elc)] <- '0'
+
+prod_util <- subset(prod_elc, Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5')
+prod_tech <- subset(prod_elc, !(Tech == '0' |Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5'))
+
+eutil_math <- prod_util[,-1]
+eutil_math <- colSums(eutil_math)
+
+prod_util[1,2] <- sum(eutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+etech_math <- prod_tech[,-1]
+etech_math <- rowSums(etech_math)
+
+prod_tech[,2] <- etech_math
+
+prod_tech <- prod_tech[,1:2]
+
+
+prod_elc <- rbind(prod_tech,prod_util)
+prod_elc_100b <- prod_elc
+
+#Produced Water
+
+prod_water <- mixeddata[47:54,5:17]
+
+names(prod_water) <- c((0:12))
+names(prod_water)[1] <- 'Tech'
+
+prod_water[,2:13] <- as.data.frame(sapply(prod_water, as.numeric))[,2:13]
+#prod_water[is.na(prod_water)] <- '0'
+
+prod_util <- subset(prod_water, Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5')
+prod_tech <- subset(prod_water, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+wutil_math <- prod_util[,-1]
+wutil_math <- colSums(wutil_math)
+
+
+
+prod_util[1,2] <- sum(wutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+wtech_math <- prod_tech[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_tech[,2] <- wtech_math
+
+prod_tech <- prod_tech[,1:2]
+
+# Gets the greywater
+
+prod_water1 <- mixeddata[67:70,5:17]
+
+names(prod_water1) <- c((0:12))
+names(prod_water1)[1] <- 'Tech'
+
+
+prod_water1[is.na(prod_water1)] <- '0'
+prod_water1[,2:13] <- as.data.frame(sapply(prod_water1, as.numeric))[,2:13]
+
+prod_water1 <- subset(prod_water1, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+
+wtech_math <- prod_water1[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_water1[,2] <- wtech_math
+
+prod_water1 <- prod_water1[,1:2]
+
+prod_water <- rbind(prod_tech,prod_util,prod_water1)
+
+prod_water_100b <- prod_water
+
+#other data
+other <- mixeddata[6:10,1:2]
+names(other) <- c('Data_Type', 'Value')
+other <- other[-3,]
+
+frac <- other
+frac <- frac[-c(1:2),]
+names(frac) <- c('Data_Type', 'Value')
+
+frac$Scenario <- runlabel
+frac_100b <- frac
+
+
+#Curtailment
+
+curt_elc <- mixeddata[77:82,5:17]
+names(curt_elc) <- c((0:12))
+names(curt_elc)[1] <- 'Tech'
+
+
+curt_elc[is.na(curt_elc)] <- '0'
+
+curt_elc[,2:13] <- as.data.frame(sapply(curt_elc, as.numeric))[,2:13]
+
+curt_elc <- subset(curt_elc, !(Tech == '0'))
+
+ctech_math <- curt_elc[,-1]
+ctech_math <- rowSums(ctech_math)
+
+curt_elc[,2] <- ctech_math
+
+curt_elc <- curt_elc[,1:2]
+
+curt_elc_100b <- curt_elc
+
+#Curtailment Water
+
+curt_water <- mixeddata[87:92,5:17]
+names(curt_water) <- c((0:12))
+names(curt_water)[1] <- 'Tech'
+
+
+curt_water[is.na(curt_water)] <- '0'
+
+curt_water[,2:13] <- as.data.frame(sapply(curt_water, as.numeric))[,2:13]
+curt_water <- subset(curt_water, !(Tech == '0'))
+
+ctech_math <- curt_water[,-1]
+ctech_math <- rowSums(ctech_math)
+
+curt_water[,2] <- ctech_math
+
+curt_water <- curt_water[,1:2]
+
+curt_water_100b <- curt_water
+
+
+#Purchase
+
+purchase <- mixeddata[16:17,5:27]
+names(purchase) <- c(1:23)
+purchase <- as.data.frame(t(purchase))
+
+names(purchase) <- c('Data', 'Value')
+rownames(purchase) <- NULL
+
+#formatting columns as correct class
+purchase$Data <- as.character(purchase$Data)
+
+#since this is a factor have to convert it to a character before converting it to a number
+purchase$Value <- as.numeric(as.character((purchase$Value)))
+
+purchase_100b <- purchase
+
+demand <- mixeddata[107:108, 5:17]
+
+names(demand) <- c((0:12))
+names(demand)[1] <- 'Fuel'
+
+demand[,2:13] <- as.data.frame(sapply(demand, as.numeric))[,2:13]
+
+demand$Scenario <- runlabel
+
+demand_100b <- demand
+```
+
+
+```{r}
+mixeddata
+costs
+capacity
+frac
+purchase
+demand
+
+```
+
+```{r}
+demandt <- as.data.frame(t(demand_1b))
+demandt
+demandt <- demandt[-1,]
+demandt <- demandt[-13,]
+demandt$month <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" )
+demandt$elabel <- rep('kWh',12)
+demandt$wlabel <- rep('Gal',12)
+names(demandt) <- c('kWh', 'Gal', 'Month', 'elabel', 'wlabel')
+demandt$kWh <- as.numeric(as.character(demandt$kWh))
+demandt$Gal <- as.numeric(as.character(demandt$Gal))
+
+
+demande_graph <- ggplot() + geom_line(data = demandt, aes (x = Month, y = kWh), group = '')+theme_minimal()+
+   labs(title = 'Monthly Energy Demand 32 Houses', x = 'Month', y = 'kWh')
+
+demande_graph1 <- ggplot() + geom_bar(data = demandt, aes (x = Month, y = kWh , fill = elabel), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+  labs(title = 'Monthly Energy Demand 32 Houses', x = 'Month', y = 'kWh')
+
+
+demandw_graph <- ggplot() + geom_bar(data = demandt, aes (x = Month, y = Gal , fill = wlabel), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+  labs(title = 'Monthly Water Demand 32 Houses', x = 'Month', y = 'Gallons')+scale_fill_manual(values = 'blue')+
+  annotation_custom(tableGrob(demandt[,1]))
+                    #xmin=35, xmax=50, ymin=-2.5, ymax=-1)
+
+demande_graph
+demandw_graph
+
+#ggsave(filename = "demand32e.pdf", demande_graph)
+#ggsave(filename = "demand32w.pdf", demandw_graph)
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+#Lists that are going to be created and store data from each run
+costdfco <- data.frame(House=as.numeric(),Dollars=as.numeric())
+capacitydfco <- data.frame(Technology=as.character(),Capacity=as.numeric(), House=as.numeric())
+fracdfco <- data.frame(Data_Type=as.character(),Value=as.numeric(), House=as.numeric())
+purchasedfco <- data.frame(Data=as.character(),Value=as.numeric(), House=as.numeric())
+prod_elcdfco <- as.data.frame(prod_elc_1b)
+prod_elcdfco <- prod_elcdfco[0,]
+prod_waterdfco <- as.data.frame(prod_water_1b)
+prod_waterdfco <- prod_waterdfco[0,]
+demanddfco <- as.data.frame(demand)
+demanddfco <- demanddfco[0,]
+
+
+
+
+i <- 1
+
+while(i<=32){
+filename <- paste0(foldername,'indata_',i,'.xlsx')
+
+
+#Get all raw data
+mixeddata <- read_excel(filename, sheet='Results')
+
+
+#Get cost data
+
+costs <- mixeddata[1:4,1:2]
+
+names(costs) <- c('House', 'Dollars')
+
+costs$Dollars <- as.numeric(costs$Dollars)
+
+costs <- costs[-c(1:3),]
+
+
+
+costs$House <- as.numeric(costs$House)
+
+costs[1,1] <- i
+
+costs <- as.data.frame(costs)
+
+costdfco <- rbind(costdfco,costs)
+
+
+#Get capacity data
+
+
+i_tech <- mixeddata[1:2, 5:27]
+names(i_tech) <- c(1:23)
+#flips rows and columns (transpose)
+i_tech <- as.data.frame(t(i_tech))
+
+names(i_tech) <- c('Technology', "Capacity")
+rownames(i_tech) <- NULL
+
+
+#formatting columns as correct class
+
+i_tech$Technology <- as.character(i_tech$Technology)
+i_tech$`Capacity` <- as.numeric(as.character(i_tech$Capacity))
+
+i_tech$House <- as.numeric(i)
+
+capacity <- as.data.frame(i_tech)
+
+#Gets rid of Utility
+#i_tech <- i_tech[1:13,]
+
+capacitydfco <- rbind(capacitydfco,capacity)
+
+#Production of Electricity by Tech
+
+prod_elc <- mixeddata[27:34,5:17]
+
+names(prod_elc) <- c((0:12))
+names(prod_elc)[1] <- 'Tech'
+
+
+
+prod_elc[,2:13] <- as.data.frame(sapply(prod_elc, as.numeric))[,2:13]
+#prod_elc[is.na(prod_elc)] <- 0
+
+prod_util <- subset(prod_elc, Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5')
+prod_tech <- subset(prod_elc, !(Tech == '0' |Tech == 'U_ELC1' | Tech == 'U_ELC2' | Tech == 'U_ELC3' | Tech == 'U_ELC4' | Tech == 'U_ELC5'))
+
+eutil_math <- prod_util[,-1]
+eutil_math <- colSums(eutil_math)
+
+prod_util[1,2] <- sum(eutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+etech_math <- prod_tech[,-1]
+etech_math <- rowSums(etech_math)
+
+prod_tech[,2] <- etech_math
+
+prod_tech <- prod_tech[,1:2]
+
+
+prod_elc <- rbind(prod_tech,prod_util)
+prod_elcdfco <- rbind(prod_elcdfco,prod_elc)
+
+#Produced Water
+
+prod_water <- mixeddata[47:55,5:17]
+
+names(prod_water) <- c((0:12))
+names(prod_water)[1] <- 'Tech'
+
+prod_water[,2:13] <- as.data.frame(sapply(prod_water, as.numeric))[,2:13]
+#prod_water[is.na(prod_water)] <- 0
+
+prod_util <- subset(prod_water, Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5')
+prod_tech <- subset(prod_water, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+wutil_math <- prod_util[,-1]
+wutil_math <- colSums(wutil_math)
+
+
+
+prod_util[1,2] <- sum(wutil_math)
+prod_util[1,1] <- 'Utility'
+prod_util <- prod_util[1,1:2]
+
+wtech_math <- prod_tech[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_tech[,2] <- wtech_math
+
+prod_tech <- prod_tech[,1:2]
+
+# Gets the greywater
+
+prod_water1 <- mixeddata[67:74,5:17]
+
+names(prod_water1) <- c((0:12))
+names(prod_water1)[1] <- 'Tech'
+
+
+#prod_water1[is.na(prod_water1)] <- 0
+prod_water1[,2:13] <- as.data.frame(sapply(prod_water1, as.numeric))[,2:13]
+prod_water1 <- subset(prod_water1, !(Tech == '0' |Tech == 'U_H2O1' | Tech == 'U_H2O2' | Tech == 'U_H2O3' | Tech == 'U_H2O4' | Tech == 'U_H2O5'))
+
+
+wtech_math <- prod_water1[,-1]
+wtech_math <- rowSums(wtech_math)
+
+prod_water1[,2] <- wtech_math
+
+prod_water1 <- prod_water1[,1:2]
+
+prod_water <- rbind(prod_tech,prod_util,prod_water1)
+
+prod_waterdfco <- rbind(prod_waterdfco, prod_water)
+
+
+#Get water and electricity fractions
+
+frac <- mixeddata[6:10,1:2]
+names(frac) <- c('Data_Type', 'Value')
+frac <- frac[-c(1:3),]
+
+frac$House <- as.numeric(i)
+frac$Data_Type <- as.character(frac$Data_Type)
+frac$Value <- as.numeric(frac$Value)
+
+frac <- as.data.frame(frac)
+
+
+fracdfco <- rbind(fracdfco,frac)
+
+#How much of each tech they purchase
+
+purchase <- mixeddata[16:17,5:27]
+names(purchase) <- c(1:23)
+purchase <- as.data.frame(t(purchase))
+
+names(purchase) <- c('Data', 'Value')
+rownames(purchase) <- NULL
+
+#formatting columns as correct class
+purchase$Data <- as.character(purchase$Data)
+
+#since this is a factor have to convert it to a character before converting it to a number
+purchase$Value <- as.numeric(as.character((purchase$Value)))
+
+#might be worth getting rid of any value that is zero 
+#purchase <- purchase[!(purchase$Value == 0),]
+
+#Can eliminate utility purchases later add 14:23 in the -c(3:4,14:23)
+purchase <- purchase[-c(3:4, 14:23),]
+purchase$House <- as.numeric(i)
+
+purchasedfco <- rbind(purchasedfco,purchase)
+
+
+#demand data
+
+
+
+demand <- mixeddata[107:108, 5:17]
+
+names(demand) <- c((0:12))
+names(demand)[1] <- 'Fuel'
+
+demand[,2:13] <- as.data.frame(sapply(demand, as.numeric))[,2:13]
+
+demand$House <- as.numeric(i)
+demand$Fuel <- as.character(demand$Fuel)
+
+demand <- as.data.frame(demand)
+
+demanddfco <- rbind(demanddfco,demand)
+
+i <- i + 1
+
+}
+
+
+
+
+head(costdfco,20)
+head(capacitydfco,20)
+head(fracdfco,20)
+head(purchasedfco,20)
+head(demanddfco,20)
+
+elc1 <- subset(prod_elcdfco, Tech == 'Utility')
+elc1[1,2] <- sum(elc1[,2])
+elc1 <- elc1[1,]
+prod_elcdfco <- subset(prod_elcdfco, !(Tech == 'Utility'))
+prod_elcdfco <- rbind(elc1,prod_elcdfco)
+
+water1 <- subset(prod_waterdfco, Tech == 'Utility')
+water1[1,2] <- sum(water1[,2])
+water1 <- water1[1,]
+prod_waterdfco <- subset(prod_waterdfco, !(Tech == 'Utility'))
+prod_waterdfco <- rbind(water1,prod_waterdfco)
+
+head(costdfco,20)
+head(capacitydfco,20)
+head(fracdfco,20)
+head(purchasedfco,20)
+head(demanddfco,20)
+head(prod_elcdfco,20)
+head(prod_waterdfco,20)
+
+
+
+```
+
+
+```{r}
+prod_water <- mixeddata_1b[47:55,5:17]
+
+names(prod_water) <- c((0:12))
+names(prod_water)[1] <- 'Tech'
+
+prod_water[,2:13] <- as.data.frame(sapply(prod_water, as.numeric))[,2:13]
+#prod_water[is.na(prod_water)] <- 0
+
+prod_water1 <- mixeddata_1b[67:74,5:17]
+
+names(prod_water1) <- c((0:12))
+names(prod_water1)[1] <- 'Tech'
+
+prod_water1[,2:13] <- as.data.frame(sapply(prod_water1, as.numeric))[,2:13]
+#prod_water1[is.na(prod_water1)] <- 0
+
+prod_water <- rbind(prod_water,prod_water1)
+
+#prod_water <- subset(prod_water, !(Tech == '0' |Tech == 'H_RWTANK' | Tech == 'C_RWTANK'))
+
+
+
+prod_elc <- mixeddata_1b[27:35,5:17]
+
+names(prod_elc) <- c((0:12))
+names(prod_elc)[1] <- 'Tech'
+
+prod_elc[,2:13] <- as.data.frame(sapply(prod_elc, as.numeric))[,2:13]
+#prod_elc[is.na(prod_elc)] <- 0
+
+#prod_elc <- subset(prod_elc, !(Tech == 'H_BAT' | Tech == 'C_BAT'))
+
+prod_elc
+prod_water
+
+#Shifting Electic Data
+
+df1 <- prod_elc[,c(1,2)]
+df2 <- prod_elc[,c(1,3)]
+colnames(df2)[2] <- '1'
+df3 <- prod_elc[,c(1,4)]
+colnames(df3)[2] <- '1'
+df4 <- prod_elc[,c(1,5)]
+colnames(df4)[2] <- '1'
+df5 <- prod_elc[,c(1,6)]
+colnames(df5)[2] <- '1'
+df6 <- prod_elc[,c(1,7)]
+colnames(df6)[2] <- '1'
+df7 <- prod_elc[,c(1,8)]
+colnames(df7)[2] <- '1'
+df8 <- prod_elc[,c(1,9)]
+colnames(df8)[2] <- '1'
+df9 <- prod_elc[,c(1,10)]
+colnames(df9)[2] <- '1'
+df10 <- prod_elc[,c(1,11)]
+colnames(df10)[2] <- '1'
+df11 <- prod_elc[,c(1,12)]
+colnames(df11)[2] <- '1'
+df12 <- prod_elc[,c(1,13)]
+colnames(df12)[2] <- '1'
+df1 <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+df1$Month <- c(rep("Jan",nrow(prod_elc)), rep("Feb",nrow(prod_elc)), rep("Mar",nrow(prod_elc)), rep("Apr",nrow(prod_elc)), rep("May", nrow(prod_elc)), rep("Jun",nrow(prod_elc)), rep("Jul",nrow(prod_elc)), rep("Aug",nrow(prod_elc)) , rep("Sep",nrow(prod_elc)), rep("Oct",nrow(prod_elc)), rep("Nov",nrow(prod_elc)), rep("Dec",nrow(prod_elc)) )
+colnames(df1)[2] <- 'Value'
+
+df1 <- df1[!(df1$Value == 0),]
+df1 <- df1[!(is.na(df1$Value)),]
+
+eprod_month_1b <- df1
+
+#Shifting Wtaer Data
+
+df1 <- prod_water[,c(1,2)]
+df2 <- prod_water[,c(1,3)]
+colnames(df2)[2] <- '1'
+df3 <- prod_water[,c(1,4)]
+colnames(df3)[2] <- '1'
+df4 <- prod_water[,c(1,5)]
+colnames(df4)[2] <- '1'
+df5 <- prod_water[,c(1,6)]
+colnames(df5)[2] <- '1'
+df6 <- prod_water[,c(1,7)]
+colnames(df6)[2] <- '1'
+df7 <- prod_water[,c(1,8)]
+colnames(df7)[2] <- '1'
+df8 <- prod_water[,c(1,9)]
+colnames(df8)[2] <- '1'
+df9 <- prod_water[,c(1,10)]
+colnames(df9)[2] <- '1'
+df10 <- prod_water[,c(1,11)]
+colnames(df10)[2] <- '1'
+df11 <- prod_water[,c(1,12)]
+colnames(df11)[2] <- '1'
+df12 <- prod_water[,c(1,13)]
+colnames(df12)[2] <- '1'
+df1 <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+df1$Month <- c(rep("Jan",nrow(prod_water)), rep("Feb",nrow(prod_water)), rep("Mar",nrow(prod_water)), rep("Apr",nrow(prod_water)), rep("May", nrow(prod_water)), rep("Jun",nrow(prod_water)), rep("Jul",nrow(prod_water)), rep("Aug",nrow(prod_water)) , rep("Sep",nrow(prod_water)), rep("Oct",nrow(prod_water)), rep("Nov",nrow(prod_water)), rep("Dec",nrow(prod_water)) )
+colnames(df1)[2] <- 'Value'
+
+df1 <- df1[!(df1$Value == 0),]
+df1 <- df1[!(is.na(df1$Value)),]
+
+wprod_month_1b <- df1
+
+
+
+
+ggplot() + geom_bar(data = eprod_month_1b, aes (x = Month, y = Value , fill = Tech), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))
+
+ggplot() + geom_bar(data = wprod_month_1b, aes (x = Month, y = Value , fill = Tech), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))
+
+
+```
+
+```{r}
+prod_water <- mixeddata_10b[47:55,5:17]
+
+names(prod_water) <- c((0:12))
+names(prod_water)[1] <- 'Tech'
+
+prod_water[,2:13] <- as.data.frame(sapply(prod_water, as.numeric))[,2:13]
+#prod_water[is.na(prod_water)] <- 0
+
+prod_water1 <- mixeddata_10b[67:74,5:17]
+
+names(prod_water1) <- c((0:12))
+names(prod_water1)[1] <- 'Tech'
+
+prod_water1[,2:13] <- as.data.frame(sapply(prod_water1, as.numeric))[,2:13]
+#prod_water1[is.na(prod_water1)] <- 0
+
+#prod_water <- subset(prod_water, !(Tech == '0' |Tech == 'H_RWTANK' | Tech == 'C_RWTANK'))
+
+prod_water <- rbind(prod_water,prod_water1)
+
+
+prod_elc <- mixeddata_10b[27:32,5:17]
+
+names(prod_elc) <- c((0:12))
+names(prod_elc)[1] <- 'Tech'
+
+prod_elc[,2:13] <- as.data.frame(sapply(prod_elc, as.numeric))[,2:13]
+#prod_elc[is.na(prod_elc)] <- 0
+
+#prod_elc <- subset(prod_elc, !(Tech == 'H_BAT' | Tech == 'C_BAT'))
+
+prod_elc
+prod_water
+
+#Shifting Electic Data
+
+df1 <- prod_elc[,c(1,2)]
+df2 <- prod_elc[,c(1,3)]
+colnames(df2)[2] <- '1'
+df3 <- prod_elc[,c(1,4)]
+colnames(df3)[2] <- '1'
+df4 <- prod_elc[,c(1,5)]
+colnames(df4)[2] <- '1'
+df5 <- prod_elc[,c(1,6)]
+colnames(df5)[2] <- '1'
+df6 <- prod_elc[,c(1,7)]
+colnames(df6)[2] <- '1'
+df7 <- prod_elc[,c(1,8)]
+colnames(df7)[2] <- '1'
+df8 <- prod_elc[,c(1,9)]
+colnames(df8)[2] <- '1'
+df9 <- prod_elc[,c(1,10)]
+colnames(df9)[2] <- '1'
+df10 <- prod_elc[,c(1,11)]
+colnames(df10)[2] <- '1'
+df11 <- prod_elc[,c(1,12)]
+colnames(df11)[2] <- '1'
+df12 <- prod_elc[,c(1,13)]
+colnames(df12)[2] <- '1'
+df1 <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+df1$Month <- c(rep("Jan",nrow(prod_elc)), rep("Feb",nrow(prod_elc)), rep("Mar",nrow(prod_elc)), rep("Apr",nrow(prod_elc)), rep("May", nrow(prod_elc)), rep("Jun",nrow(prod_elc)), rep("Jul",nrow(prod_elc)), rep("Aug",nrow(prod_elc)) , rep("Sep",nrow(prod_elc)), rep("Oct",nrow(prod_elc)), rep("Nov",nrow(prod_elc)), rep("Dec",nrow(prod_elc)) )
+colnames(df1)[2] <- 'Value'
+
+df1 <- df1[!(df1$Value == 0),]
+df1 <- df1[!(is.na(df1$Value)),]
+
+eprod_month_10b <- df1
+
+#Shifting Wtaer Data
+
+df1 <- prod_water[,c(1,2)]
+df2 <- prod_water[,c(1,3)]
+colnames(df2)[2] <- '1'
+df3 <- prod_water[,c(1,4)]
+colnames(df3)[2] <- '1'
+df4 <- prod_water[,c(1,5)]
+colnames(df4)[2] <- '1'
+df5 <- prod_water[,c(1,6)]
+colnames(df5)[2] <- '1'
+df6 <- prod_water[,c(1,7)]
+colnames(df6)[2] <- '1'
+df7 <- prod_water[,c(1,8)]
+colnames(df7)[2] <- '1'
+df8 <- prod_water[,c(1,9)]
+colnames(df8)[2] <- '1'
+df9 <- prod_water[,c(1,10)]
+colnames(df9)[2] <- '1'
+df10 <- prod_water[,c(1,11)]
+colnames(df10)[2] <- '1'
+df11 <- prod_water[,c(1,12)]
+colnames(df11)[2] <- '1'
+df12 <- prod_water[,c(1,13)]
+colnames(df12)[2] <- '1'
+df1 <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+df1$Month <- c(rep("Jan",nrow(prod_water)), rep("Feb",nrow(prod_water)), rep("Mar",nrow(prod_water)), rep("Apr",nrow(prod_water)), rep("May", nrow(prod_water)), rep("Jun",nrow(prod_water)), rep("Jul",nrow(prod_water)), rep("Aug",nrow(prod_water)) , rep("Sep",nrow(prod_water)), rep("Oct",nrow(prod_water)), rep("Nov",nrow(prod_water)), rep("Dec",nrow(prod_water)) )
+colnames(df1)[2] <- 'Value'
+
+df1 <- df1[!(df1$Value == 0),]
+df1 <- df1[!(is.na(df1$Value)),]
+
+wprod_month_10b <- df1
+
+
+
+
+ggplot() + geom_bar(data = eprod_month_10b, aes (x = Month, y = Value , fill = Tech), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))
+
+ggplot() + geom_bar(data = wprod_month_10b, aes (x = Month, y = Value , fill = Tech), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))
+
+
+
+
+
+```
+
+```{r}
+prod_water <- mixeddata_100b[47:55,5:17]
+
+names(prod_water) <- c((0:12))
+names(prod_water)[1] <- 'Tech'
+
+prod_water[,2:13] <- as.data.frame(sapply(prod_water, as.numeric))[,2:13]
+#prod_water[is.na(prod_water)] <- 0
+
+prod_water1 <- mixeddata_100b[67:74,5:17]
+
+names(prod_water1) <- c((0:12))
+names(prod_water1)[1] <- 'Tech'
+
+prod_water1[,2:13] <- as.data.frame(sapply(prod_water1, as.numeric))[,2:13]
+#prod_water1[is.na(prod_water1)] <- 0
+
+#prod_water <- subset(prod_water, !(Tech == '0' |Tech == 'H_RWTANK' | Tech == 'C_RWTANK'))
+
+prod_water <- rbind(prod_water,prod_water1)
+
+prod_elc <- mixeddata_100b[27:32,5:17]
+
+names(prod_elc) <- c((0:12))
+names(prod_elc)[1] <- 'Tech'
+
+prod_elc[,2:13] <- as.data.frame(sapply(prod_elc, as.numeric))[,2:13]
+#prod_elc[is.na(prod_elc)] <- 0
+
+
+#prod_elc <- subset(prod_elc, !(Tech == 'H_BAT' | Tech == 'C_BAT'))
+
+prod_elc
+prod_water
+
+#Shifting Electic Data
+
+df1 <- prod_elc[,c(1,2)]
+df2 <- prod_elc[,c(1,3)]
+colnames(df2)[2] <- '1'
+df3 <- prod_elc[,c(1,4)]
+colnames(df3)[2] <- '1'
+df4 <- prod_elc[,c(1,5)]
+colnames(df4)[2] <- '1'
+df5 <- prod_elc[,c(1,6)]
+colnames(df5)[2] <- '1'
+df6 <- prod_elc[,c(1,7)]
+colnames(df6)[2] <- '1'
+df7 <- prod_elc[,c(1,8)]
+colnames(df7)[2] <- '1'
+df8 <- prod_elc[,c(1,9)]
+colnames(df8)[2] <- '1'
+df9 <- prod_elc[,c(1,10)]
+colnames(df9)[2] <- '1'
+df10 <- prod_elc[,c(1,11)]
+colnames(df10)[2] <- '1'
+df11 <- prod_elc[,c(1,12)]
+colnames(df11)[2] <- '1'
+df12 <- prod_elc[,c(1,13)]
+colnames(df12)[2] <- '1'
+df1 <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+df1$Month <- c(rep("Jan",nrow(prod_elc)), rep("Feb",nrow(prod_elc)), rep("Mar",nrow(prod_elc)), rep("Apr",nrow(prod_elc)), rep("May", nrow(prod_elc)), rep("Jun",nrow(prod_elc)), rep("Jul",nrow(prod_elc)), rep("Aug",nrow(prod_elc)) , rep("Sep",nrow(prod_elc)), rep("Oct",nrow(prod_elc)), rep("Nov",nrow(prod_elc)), rep("Dec",nrow(prod_elc)) )
+colnames(df1)[2] <- 'Value'
+
+df1 <- df1[!(df1$Value == 0),]
+df1 <- df1[!(is.na(df1$Value)),]
+
+eprod_month_100b <- df1
+
+#Shifting Wtaer Data
+
+df1 <- prod_water[,c(1,2)]
+df2 <- prod_water[,c(1,3)]
+colnames(df2)[2] <- '1'
+df3 <- prod_water[,c(1,4)]
+colnames(df3)[2] <- '1'
+df4 <- prod_water[,c(1,5)]
+colnames(df4)[2] <- '1'
+df5 <- prod_water[,c(1,6)]
+colnames(df5)[2] <- '1'
+df6 <- prod_water[,c(1,7)]
+colnames(df6)[2] <- '1'
+df7 <- prod_water[,c(1,8)]
+colnames(df7)[2] <- '1'
+df8 <- prod_water[,c(1,9)]
+colnames(df8)[2] <- '1'
+df9 <- prod_water[,c(1,10)]
+colnames(df9)[2] <- '1'
+df10 <- prod_water[,c(1,11)]
+colnames(df10)[2] <- '1'
+df11 <- prod_water[,c(1,12)]
+colnames(df11)[2] <- '1'
+df12 <- prod_water[,c(1,13)]
+colnames(df12)[2] <- '1'
+df1 <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+df1$Month <- c(rep("Jan",nrow(prod_water)), rep("Feb",nrow(prod_water)), rep("Mar",nrow(prod_water)), rep("Apr",nrow(prod_water)), rep("May", nrow(prod_water)), rep("Jun",nrow(prod_water)), rep("Jul",nrow(prod_water)), rep("Aug",nrow(prod_water)) , rep("Sep",nrow(prod_water)), rep("Oct",nrow(prod_water)), rep("Nov",nrow(prod_water)), rep("Dec",nrow(prod_water)) )
+colnames(df1)[2] <- 'Value'
+
+df1 <- df1[!(df1$Value == 0),]
+df1 <- df1[!(is.na(df1$Value)),]
+
+wprod_month_100b <- df1
+
+
+
+
+ggplot() + geom_bar(data = eprod_month_100b, aes (x = Month, y = Value , fill = Tech), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))
+
+ggplot() + geom_bar(data = wprod_month_100b, aes (x = Month, y = Value , fill = Tech), stat = "identity")+theme_minimal()+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))
+
+
+```
+
+
+
+
+```{r}
+elc_produced <- as.data.frame(mixeddata_1b[118:2757,5:18])
+
+storage_produced <- as.data.frame(mixeddata_1b[40118:42000,5:18])
+
+head(elc_produced,20)
+
+head(storage_produced,20)
+
+elc_produced[is.na(elc_produced)] <- 0
+
+storage_produced[is.na(storage_produced)] <- 0
+
+elc_produced[,8] <- as.numeric(elc_produced[,8])
+
+storage_produced[,8] <- as.numeric(storage_produced[,8])
+
+
+timeslices <- as.data.frame(elc_produced[2:744,2])
+
+timeslices$hour <- seq(as.POSIXct("2016-06-01 00:00:00"),as.POSIXct("2016-07-01 22:00:00"),by="hour")
+
+names(timeslices) <- c('timeslice', 'hour')
+
+elc_produced$hour <- 0
+
+elc_June <- as.data.frame(elc_produced[,c(1,2,8,15)])
+
+storage_June <- as.data.frame(storage_produced[,c(1,2,8)])
+
+
+
+colnames(elc_June) <- c('Technology', 'Timeslice', 'Production', 'Hour')
+
+colnames(storage_June) <- c('Technology', 'Timeslice', 'Production')
+
+
+elc_June$Hour <- timeslices$hour[match(elc_June$Timeslice, timeslices$timeslice)]
+
+elc_June$Production[is.na(elc_June$Production)] <- 0
+
+elc_June$Timeslice[is.na(elc_June$Timeslice)] <- 0
+
+elc_June$Technology[is.na(elc_June$Technology)] <- 0
+
+
+
+
+
+storage_June$Production[is.na(storage_June$Production)] <- 0
+
+storage_June$Timeslice[is.na(storage_June$Timeslice)] <- 0
+
+storage_June$Technology[is.na(storage_June$Technology)] <- 0
+
+storage_June <- subset(storage_June, Technology == 'C_BAT')
+
+
+#subtracting C_BAT production from storage added
+
+elc_June1 <- subset(elc_June, Technology != 'C_BAT')
+
+elc_June2 <- subset(elc_June, Technology == 'C_BAT')
+
+elc_June2$Storage <- storage_June[match(elc_June2$Timeslice, storage_June$Timeslice),3]
+
+elc_June2$Storage[is.na(elc_June2$Storage)] <- 0
+
+elc_June2$Production <- elc_June2$Production - elc_June2$Storage
+
+
+
+if(nrow(elc_June2) >= 5){
+for(i in 1:nrow(elc_June2)){
+  if(elc_June2[i,3] < 0){
+    elc_June2[i,1] <- 'Charging'
+  }
+}
+}
+
+elc_June2 <- select(elc_June2, -c(Storage))
+
+elc_June <- rbind(elc_June1, elc_June2)
+
+
+
+
+
+
+#daily_energy_1b <- elc_June %>% mutate(day = as.Date(Hour, format='%Y-%m-%d')) %>% group_by(day, Technology) %>% dplyr::summarise(energy_use = mean(Production)) %>% na.omit()
+
+#daily_energy$Technology %<>% factor(levels = c('U_ELC5', 'U_ELC4', 'U_ELC3', 'H_PV', 'U_ELC2', 'U_ELC1'))
+
+daily_energy_1b <- elc_June %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-06-02 04:00:00", tz = "UTC"))
+
+head(daily_energy_1b,50)
+
+mini_June <- elc_June %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-06-02 04:00:00", tz = "UTC"))
+
+
+
+head(timeslices,20)
+head(elc_June,50)
+#head(mini_June,50)
+
+
+#ggplot(daily_energy_1b, aes(x = day, y = energy_use, fill = Technology))+geom_area(position = 'stack')+ scale_x_date(limits = as.Date(c('2016-06-07','2016-06-14')))
+
+ggplot(daily_energy_1b, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+#ggplot(mini_June, aes(x = Hour, y = Production, fill = Technology))+geom_area(position = 'stack')+theme_minimal()
+#ggplot(mini_June, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+  
+
+```
+
+
+```{r}
+elc_produced <- as.data.frame(mixeddata_10b[118:2757,5:18])
+
+storage_produced <- as.data.frame(mixeddata_10b[40118:42000,5:18])
+
+head(elc_produced,20)
+
+head(storage_produced,20)
+
+elc_produced[,8] <- as.numeric(elc_produced[,8], na.rm = TRUE)
+
+storage_produced[,8] <- as.numeric(storage_produced[,8], na.rm = TRUE)
+
+timeslices$hour <- seq(as.POSIXct("2016-06-01 00:00:00"),as.POSIXct("2016-07-01 22:00:00"),by="hour")
+
+elc_produced$hour <- 0
+
+elc_June <- as.data.frame(elc_produced[,c(1,2,8,15)], na.rm = TRUE)
+
+storage_June <- as.data.frame(storage_produced[,c(1,2,8)], na.rm = TRUE)
+
+colnames(elc_June) <- c('Technology', 'Timeslice', 'Production', 'Hour')
+
+colnames(storage_June) <- c('Technology', 'Timeslice', 'Production')
+
+
+elc_June$Hour <- timeslices$hour[match(elc_June$Timeslice, timeslices$timeslice)]
+
+elc_June$Production[is.na(elc_June$Production)] <- 0
+
+elc_June$Timeslice[is.na(elc_June$Timeslice)] <- 0
+
+elc_June$Technology[is.na(elc_June$Technology)] <- 0
+
+storage_June$Production[is.na(storage_June$Production)] <- 0
+
+storage_June$Timeslice[is.na(storage_June$Timeslice)] <- 0
+
+storage_June$Technology[is.na(storage_June$Technology)] <- 0
+
+
+
+storage_June <- subset(storage_June, Technology == 'C_BAT')
+
+
+#subtracting C_BAT production from storage added
+
+elc_June1 <- subset(elc_June, Technology != 'C_BAT')
+
+elc_June2 <- subset(elc_June, Technology == 'C_BAT')
+
+elc_June2$Storage <- storage_June[match(elc_June2$Timeslice, storage_June$Timeslice),3]
+
+elc_June2$Storage[is.na(elc_June2$Storage)] <- 0
+
+elc_June2$Production <- elc_June2$Production - elc_June2$Storage
+
+
+if(nrow(elc_June2) >= 5){
+for(i in 1:nrow(elc_June2)){
+  if(elc_June2[i,3] < 0){
+    elc_June2[i,1] <- 'Charging'
+  }
+}
+}
+
+elc_June2 <- select(elc_June2, -c(Storage))
+
+elc_June <- rbind(elc_June1, elc_June2)
+
+daily_energy_10b <- elc_June %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-06-02 04:00:00", tz = "UTC"))
+
+head(daily_energy_1b,50)
+
+mini_June <- elc_June %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-06-02 04:00:00", tz = "UTC"))
+
+
+
+head(timeslices,20)
+head(elc_June,50)
+#head(mini_June,50)
+
+
+#ggplot(daily_energy_10b, aes(x = day, y = energy_use, fill = Technology))+geom_area(position = 'stack')+ scale_x_date(limits = as.Date(c('2016-06-07','2016-06-14')))
+
+ggplot(daily_energy_10b, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+#ggplot(mini_June, aes(x = Hour, y = Production, fill = Technology))+geom_area(position = 'stack')+theme_minimal()
+#ggplot(mini_June, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+```
+
+
+```{r}
+elc_produced <- as.data.frame(mixeddata_100b[118:2757,5:18])
+
+storage_produced <- as.data.frame(mixeddata_100b[40118:42000,5:18])
+
+head(elc_produced,20)
+
+head(storage_produced,20)
+
+elc_produced[,8] <- as.numeric(elc_produced[,8], na.rm = TRUE)
+
+storage_produced[,8] <- as.numeric(storage_produced[,8], na.rm = TRUE)
+
+timeslices$hour <- seq(as.POSIXct("2016-06-01 00:00:00"),as.POSIXct("2016-07-01 22:00:00"),by="hour")
+
+elc_produced$hour <- 0
+
+elc_June <- as.data.frame(elc_produced[,c(1,2,8,15)], na.rm = TRUE)
+
+storage_June <- as.data.frame(storage_produced[,c(1,2,8)], na.rm = TRUE)
+
+colnames(elc_June) <- c('Technology', 'Timeslice', 'Production', 'Hour')
+
+colnames(storage_June) <- c('Technology', 'Timeslice', 'Production')
+
+
+elc_June$Hour <- timeslices$hour[match(elc_June$Timeslice, timeslices$timeslice)]
+
+elc_June$Production[is.na(elc_June$Production)] <- 0
+
+elc_June$Timeslice[is.na(elc_June$Timeslice)] <- 0
+
+elc_June$Technology[is.na(elc_June$Technology)] <- 0
+
+storage_June$Production[is.na(storage_June$Production)] <- 0
+
+storage_June$Timeslice[is.na(storage_June$Timeslice)] <- 0
+
+storage_June$Technology[is.na(storage_June$Technology)] <- 0
+
+
+
+storage_June <- subset(storage_June, Technology == 'C_BAT')
+
+
+#subtracting C_BAT production from storage added
+
+elc_June1 <- subset(elc_June, Technology != 'C_BAT')
+
+elc_June2 <- subset(elc_June, Technology == 'C_BAT')
+
+elc_June2$Storage <- storage_June[match(elc_June2$Timeslice, storage_June$Timeslice),3]
+
+elc_June2$Storage[is.na(elc_June2$Storage)] <- 0
+
+elc_June2$Production <- elc_June2$Production - elc_June2$Storage
+
+
+
+if(nrow(elc_June2) >= 5){
+for(i in 1:nrow(elc_June2)){
+  if(elc_June2[i,3] < 0){
+    elc_June2[i,1] <- 'Charging'
+  }
+}
+}
+
+elc_June2 <- select(elc_June2, -c(Storage))
+
+elc_June <- rbind(elc_June1, elc_June2)
+
+daily_energy_100b <- elc_June %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-06-02 16:00:00", tz = "UTC"))
+
+head(daily_energy_100b,50)
+
+mini_June <- elc_June %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-06-02 04:00:00", tz = "UTC"))
+
+
+
+head(timeslices,20)
+head(elc_June,50)
+#head(mini_June,50)
+
+
+#ggplot(daily_energy_100b, aes(x = day, y = energy_use, fill = Technology))+geom_area(position = 'stack')+ scale_x_date(limits = as.Date(c('2016-06-07','2016-06-14')))
+
+hourly_elc <- ggplot(daily_energy_1b, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 10), axis.title.x = element_blank(), axis.text.y.right = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.5, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = 'Electricity Production', y = 'Total Hourly Electricity Production (kWh)', x = '')+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "U_ELC1" = 'U_ELC1', "U_ELC2" = 'U_ELC2', "U_ELC3" = 'U_ELC3', "U_ELC4" = 'U_ELC4', "U_ELC5" = 'U_ELC5', 'H_BAT' = 'IND-BAT', 'C_BAT' = 'COM-BAT', 'Charging' = 'Charging'), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "U_ELC1" = 'gray45', "U_ELC2" = 'gray38', "U_ELC3" = 'gray32', "U_ELC4" = 'gray25', "U_ELC5" = 'gray15', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4', 'Charging' = 'chocolate4'))+
+  coord_cartesian(ylim = c(-30,120))
+
+
+hourly_elc
+#ggplot(mini_June, aes(x = Hour, y = Production, fill = Technology))+geom_area(position = 'stack')+theme_minimal()
+#ggplot(mini_June, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+```
+
+```{r}
+water_produced <- as.data.frame(mixeddata_1b[10122:14757,5:18])
+
+water_produced1 <- as.data.frame(mixeddata_1b[20122:24757,5:18])
+
+water_produced <- rbind(water_produced,water_produced1)
+
+head(water_produced,20)
+
+
+
+
+
+
+water_produced[,7] <- as.numeric(water_produced[,7], na.rm = TRUE)
+
+timeslices$hour <- seq(as.POSIXct("2016-05-01 00:00:00"),as.POSIXct("2016-05-31 22:00:00"),by="hour")
+
+water_produced$hour <- 0
+
+water_May <- as.data.frame(water_produced[,c(1,2,7,15)], na.rm = TRUE)
+
+colnames(water_May) <- c('Technology', 'Timeslice', 'Production', 'Hour')
+
+
+water_May$Hour <- timeslices$hour[match(water_May$Timeslice, timeslices$timeslice)]
+
+water_May$Production[is.na(water_May$Production)] <- 0
+
+water_May$Technology[is.na(water_May$Technology)] <- 0
+
+water_May$Timeslice[is.na(water_May$Timeslice)] <- 0
+
+
+storage_produced <- as.data.frame(mixeddata_1b[40118:42000,5:18])
+
+head(storage_produced,20)
+
+storage_produced[,7] <- as.numeric(storage_produced[,7], na.rm = TRUE)
+
+storage_May <- as.data.frame(storage_produced[,c(1,2,7)], na.rm = TRUE)
+
+colnames(storage_May) <- c('Technology', 'Timeslice', 'Production')
+
+storage_May$Production[is.na(storage_May$Production)] <- 0
+
+storage_May$Timeslice[is.na(storage_May$Timeslice)] <- 0
+
+storage_May$Technology[is.na(storage_May$Technology)] <- 0
+
+storage_May <- subset(storage_May, Technology == 'H_RWTANK')
+
+
+#subtracting C_BAT production from storage added
+
+water_May1 <- subset(water_May, Technology != 'H_RWTANK')
+
+water_May2 <- subset(water_May, Technology == 'H_RWTANK')
+
+water_May2$Storage <- storage_May[match(water_May2$Timeslice, storage_May$Timeslice),3]
+
+water_May2$Storage[is.na(water_May2$Storage)] <- 0
+
+water_May2$Production <- water_May2$Production - water_May2$Storage
+
+
+if(nrow(water_May2) >= 5){
+for(i in 1:nrow(water_May2)){
+  if(water_May2[i,3] < 0){
+    water_May2[i,1] <- 'Storing'
+  }
+}
+}
+
+water_May2 <- select(water_May2, -c(Storage))
+
+water_May <- rbind(water_May1, water_May2)
+
+
+
+
+
+#daily_water_1b <- water_May %>% mutate(day = as.Date(Hour, format='%Y-%m-%d')) %>% group_by(day, Technology) %>% dplyr::summarise(water_use = mean(Production)) %>% na.omit()
+
+daily_water_1b <- water_May %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-05-02 16:00:00", tz = "UTC"))
+
+
+head(daily_water_1b,50)
+
+
+mini_May <- water_May %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-05-02 04:00:00", tz = "UTC"))
+
+head(timeslices,20)
+head(water_May,50)
+head(mini_May,50)
+
+
+
+
+
+#ggplot(daily_water_1b, aes(x = day, y = water_use, fill = Technology))+geom_area(position = 'stack')
+
+ggplot(daily_water_1b, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+#ggplot(mini_May, aes(x = Hour, y = Production, fill = Technology))+geom_area(position = 'stack')+theme_minimal()
+#ggplot(mini_May, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+water_produced <- as.data.frame(mixeddata_10b[10122:14757,5:18])
+
+water_produced1 <- as.data.frame(mixeddata_10b[20122:24757,5:18])
+
+water_produced <- rbind(water_produced,water_produced1)
+
+head(water_produced,20)
+
+water_produced[,7] <- as.numeric(water_produced[,7], na.rm = TRUE)
+
+timeslices$hour <- seq(as.POSIXct("2016-05-01 00:00:00"),as.POSIXct("2016-05-31 22:00:00"),by="hour")
+
+water_produced$hour <- 0
+
+water_May <- as.data.frame(water_produced[,c(1,2,7,15)], na.rm = TRUE)
+
+colnames(water_May) <- c('Technology', 'Timeslice', 'Production', 'Hour')
+
+
+water_May$Hour <- timeslices$hour[match(water_May$Timeslice, timeslices$timeslice)]
+
+water_May$Production[is.na(water_May$Production)] <- 0
+
+water_May$Technology[is.na(water_May$Technology)] <- 0
+
+water_May$Timeslice[is.na(water_May$Timeslice)] <- 0
+
+
+storage_produced <- as.data.frame(mixeddata_10b[40118:42000,5:18])
+
+head(storage_produced,20)
+
+storage_produced[,7] <- as.numeric(storage_produced[,7], na.rm = TRUE)
+
+storage_May <- as.data.frame(storage_produced[,c(1,2,7)], na.rm = TRUE)
+
+colnames(storage_May) <- c('Technology', 'Timeslice', 'Production')
+
+storage_May$Production[is.na(storage_May$Production)] <- 0
+
+storage_May$Timeslice[is.na(storage_May$Timeslice)] <- 0
+
+storage_May$Technology[is.na(storage_May$Technology)] <- 0
+
+storage_May <- subset(storage_May, Technology == 'H_RWTANK')
+
+
+#subtracting C_BAT production from storage added
+
+water_May1 <- subset(water_May, Technology != 'H_RWTANK')
+
+water_May2 <- subset(water_May, Technology == 'H_RWTANK')
+
+water_May2$Storage <- storage_May[match(water_May2$Timeslice, storage_May$Timeslice),3]
+
+water_May2$Storage[is.na(water_May2$Storage)] <- 0
+
+water_May2$Production <- water_May2$Production - water_May2$Storage
+
+
+
+if(nrow(water_May2) >= 5){
+for(i in 1:nrow(water_May2)){
+  if(water_May2[i,3] < 0){
+    water_May2[i,1] <- 'Storing'
+  }
+}
+}
+
+water_May2 <- select(water_May2, -c(Storage))
+
+water_May <- rbind(water_May1, water_May2)
+
+
+
+
+
+#daily_water_10b <- water_May %>% mutate(day = as.Date(Hour, format='%Y-%m-%d')) %>% group_by(day, Technology) %>% dplyr::summarise(water_use = mean(Production)) %>% na.omit()
+
+daily_water_10b <- water_May %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-05-03 10:00:00", tz = "UTC"))
+
+
+head(daily_water_10b,50)
+
+
+mini_May <- water_May %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-05-02 04:00:00", tz = "UTC"))
+
+head(timeslices,20)
+head(water_May,50)
+head(mini_May,50)
+
+
+
+
+
+#ggplot(daily_water_10b, aes(x = day, y = water_use, fill = Technology))+geom_area(position = 'stack')
+
+ggplot(daily_water_10b, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+#ggplot(mini_May, aes(x = Hour, y = Production, fill = Technology))+geom_area(position = 'stack')+theme_minimal()
+#ggplot(mini_May, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+```
+
+```{r}
+water_produced <- as.data.frame(mixeddata_100b[10122:14757,5:18])
+
+water_produced1 <- as.data.frame(mixeddata_100b[20122:24757,5:18])
+
+water_produced <- rbind(water_produced,water_produced1)
+
+head(water_produced,20)
+
+water_produced[,7] <- as.numeric(water_produced[,7], na.rm = TRUE)
+
+timeslices$hour <- seq(as.POSIXct("2016-05-01 00:00:00"),as.POSIXct("2016-05-31 22:00:00"),by="hour")
+
+water_produced$hour <- 0
+
+water_May <- as.data.frame(water_produced[,c(1,2,7,15)], na.rm = TRUE)
+
+colnames(water_May) <- c('Technology', 'Timeslice', 'Production', 'Hour')
+
+
+water_May$Hour <- timeslices$hour[match(water_May$Timeslice, timeslices$timeslice)]
+
+water_May$Production[is.na(water_May$Production)] <- 0
+
+water_May$Technology[is.na(water_May$Technology)] <- 0
+
+water_May$Timeslice[is.na(water_May$Timeslice)] <- 0
+
+
+
+storage_produced <- as.data.frame(mixeddata_100b[40118:42000,5:18])
+
+head(storage_produced,20)
+
+storage_produced[,7] <- as.numeric(storage_produced[,7], na.rm = TRUE)
+
+storage_May <- as.data.frame(storage_produced[,c(1,2,7)], na.rm = TRUE)
+
+colnames(storage_May) <- c('Technology', 'Timeslice', 'Production')
+
+storage_May$Production[is.na(storage_May$Production)] <- 0
+
+storage_May$Timeslice[is.na(storage_May$Timeslice)] <- 0
+
+storage_May$Technology[is.na(storage_May$Technology)] <- 0
+
+storage_May <- subset(storage_May, Technology == 'H_RWTANK')
+
+
+#subtracting C_BAT production from storage added
+
+water_May1 <- subset(water_May, Technology != 'H_RWTANK')
+
+water_May2 <- subset(water_May, Technology == 'H_RWTANK')
+
+water_May2$Storage <- storage_May[match(water_May2$Timeslice, storage_May$Timeslice),3]
+
+water_May2$Storage[is.na(water_May2$Storage)] <- 0
+
+water_May2$Production <- water_May2$Production - water_May2$Storage
+
+
+
+if(nrow(water_May2) >= 5){
+for(i in 1:nrow(water_May2)){
+  if(water_May2[i,3] < 0){
+    water_May2[i,1] <- 'Storing'
+  }
+}
+}
+
+water_May2 <- select(water_May2, -c(Storage))
+
+water_May <- rbind(water_May1, water_May2)
+
+
+#daily_water_100b <- water_May %>% mutate(day = as.Date(Hour, format='%Y-%m-%d')) %>% group_by(day, Technology) %>% dplyr::summarise(water_use = mean(Production)) %>% na.omit()
+
+daily_water_100b <- water_May %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-05-02 16:00:00", tz = "UTC"))
+
+
+head(daily_water_100b,50)
+
+
+mini_May <- water_May %>% group_by(Hour, Technology) %>% filter(Hour <= as.POSIXct("2016-05-02 04:00:00", tz = "UTC"))
+
+head(timeslices,20)
+head(water_May,50)
+head(mini_May,50)
+
+
+
+
+
+#ggplot(daily_water_100b, aes(x = day, y = water_use, fill = Technology))+geom_area(position = 'stack')
+
+hourly_water <- ggplot(daily_water_1b, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()+
+   theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 10), axis.title.x = element_blank(), axis.text.y.right = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.5, unit = 'cm'), plot.margin = unit(x = c(0.6,0.6,0.6,0.6), units = 'mm'))+
+   labs(title = 'Water Production', y = 'Total Hourly Water Production (Gals)', x = 'Time')+
+  scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "U_H2O1" = 'U_H2O1', "U_H2O2" = 'U_H2O2', "U_H2O3" = 'U_H2O3', "U_H2O4" = 'U_H2O4', "U_H2O5" = 'U_H2O5','C_RWTANK' = 'CRWTANK', 'H_RWTANK' = 'RWTANK', 'Storing' = 'Storing'), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4', 'Storing' = 'aquamarine4') )+
+   coord_cartesian(ylim = c(-2000,3000))
+
+hourly_water
+
+#ggplot(mini_May, aes(x = Hour, y = Production, fill = Technology))+geom_area(position = 'stack')+theme_minimal()
+#ggplot(mini_May, aes(x = Hour, y = Production, fill = Technology))+geom_bar(stat='identity')+theme_minimal()
+
+```
+
+
+```{r}
+# #see what data is weird
+# costs_1b
+# costdfco
+# max(costdfco$Dollars)
+# mean(costdfco$Dollars)
+# min(costdfco$Dollars)
+# 
+# test <- subset(demanddfco,Fuel == 'kWh')
+# 
+# test[is.na(test)] <- 0
+# 
+# apply(subset(demanddfco, Fuel == 'kWh')[,-1],1,max)
+
+```
+
+```{r}
+
+#Making a total cost dataframe
+costdf <- as.data.frame(costdfco)
+costdf$Scenario <- 'Individual'
+costdf <- costdf[,-c(1)]
+
+#Cost of co optimized indivudals summed
+
+costdf[1,1] <- mean(costdfco$Dollars)
+
+
+#the total costs of the community co-op 1 block solution
+costdf[2,1] <- costs_1b[4,2]/32
+costdf[2,2] <- '32 Houses'
+
+#the total costs of the community co-op 10 block solution
+costdf[3,1] <- costs_10b[4,2]/320
+costdf[3,2] <- '320 Houses'
+
+#the total costs of the community co-op 100 block solution
+costdf[4,1] <- costs_100b[4,2]/3200
+costdf[4,2] <- '3200 Houses'
+
+#deletes unnessary rows
+costdf <- costdf[1:4,]
+
+#Fraction Data
+fracdf <- as.data.frame(fracdfco)
+fracdf <- fracdf[,-c(3)]
+fracdf$Scenario <- 'Individual'
+
+#adding individual values
+
+fracdf[,2][is.na(fracdf[,2])] <- 0
+fracdf[1,2] <- mean(subset(fracdf,Data_Type == 'Electricity Fraction')[,2]) 
+fracdf[2,2] <- mean(subset(fracdf,Data_Type == 'Water Fraction')[,2]) 
+
+#adding community values 1 block
+fracdf[3,2] <- frac_1b[1,2]
+fracdf[4,2] <- frac_1b[2,2]
+fracdf[3:4,3] <- '32 Houses'
+
+#adding community values 10 block
+fracdf[5,2] <- frac_10b[1,2]
+fracdf[6,2] <- frac_10b[2,2]
+fracdf[5:6,3] <- '320 Houses'
+
+#adding community values 100 block
+fracdf[7,2] <- frac_100b[1,2]
+fracdf[8,2] <- frac_100b[2,2]
+fracdf[7:8,3] <- '3200 Houses'
+
+
+
+#deleteing unneccessary rows
+fracdf <- fracdf[1:8,]
+
+#Adding capacity values
+
+capacitydf <- aggregate(Capacity ~ Technology, data = capacitydfco, FUN = sum, na.rm = TRUE, na.action = NULL)
+capacitydf$Scenario <-  'Individual'
+
+capacity_1b$Scenario <- '32 Houses'
+
+capacity_10b$Scenario <- '320 Houses'
+
+capacity_100b$Scenario <- '3200 Houses'
+
+capacitydf <- rbind(capacitydf, capacity_1b, capacity_10b, capacity_100b)
+
+capacitydf[,2] <- capacitydf[,2]
+
+
+#might be worth getting rid of any value that is zero 
+capacitydf <- capacitydf[!(capacitydf$Capacity == 0),]
+
+elc_capacitydf <- subset(capacitydf, Technology == 'C_BAT' | Technology == "H_BAT" | Technology == 'C_HB' | Technology == 'C_PV' | Technology == 'C_WND' | Technology == 'H_PV' | Technology == 'U_ELC1' | Technology == 'U_ELC2' | Technology == 'U_ELC3' | Technology == 'U_ELC4' | Technology == 'U_ELC5')
+
+
+water_capacitydf <- subset(capacitydf, Technology == "H_RW" | Technology == 'C_VRF' | Technology == 'H_RWTANK'  | Technology == 'H_GW' | Technology == 'U_H2O1' | Technology == 'U_H2O2' | Technology == 'U_H2O3' | Technology == 'U_H2O4' | Technology == 'U_H2O5')
+                            
+#Elec Produced
+
+prod_elcdfco <- aggregate(`1` ~ Tech, data = prod_elcdfco, FUN = sum, na.rm = TRUE, na.action = NULL)
+
+prod_elcdfco$Scenario <- 'Individual'
+
+prod_elc_1b$Scenario <- '32 Houses'
+
+prod_elc_10b$Scenario <- '320 Houses'
+
+prod_elc_100b$Scenario <- '3200 Houses'
+
+prod_elcdf <- rbind(prod_elcdfco, prod_elc_1b, prod_elc_10b, prod_elc_100b)
+
+
+
+#water Produced
+
+prod_waterdfco <- aggregate(`1` ~ Tech, data = prod_waterdfco, FUN = sum, na.rm = TRUE, na.action = NULL)
+
+prod_waterdfco$Scenario <- 'Individual'
+
+prod_water_1b$Scenario <- '32 Houses'
+
+prod_water_10b$Scenario <- '320 Houses'
+
+prod_water_100b$Scenario <- '3200 Houses'
+
+prod_waterdf <- rbind(prod_waterdfco, prod_water_1b, prod_water_10b, prod_water_100b)
+
+
+
+
+#Adding purchase values
+
+
+purchasedf <- aggregate(Value ~ Data, data = purchasedfco, FUN = sum, na.rm = TRUE, na.action = NULL)
+purchasedf$Scenario <-  'Individual'
+
+purchase_1b$Scenario <- '32 Houses'
+
+purchase_10b$Scenario <- '320 Houses'
+
+purchase_100b$Scenario <- '3200 Houses'
+
+purchasedf <- rbind(purchasedf, purchase_1b, purchase_10b, purchase_100b)
+
+purchasedf[,2] <- purchasedf[,2]
+
+#might be worth getting rid of any value that is zero 
+purchasedf <- purchasedf[!(purchasedf$Value == 0),]
+purchasedf <- purchasedf[!(is.na(purchasedf$Value)),]
+
+costdf
+fracdf
+capacitydf
+elc_capacitydf
+water_capacitydf
+prod_elcdf
+prod_waterdf
+purchasedf
+
+
+
+
+
+```
+
+```{r}
+#combining or removing utility information as neccessary
+
+water_capacitydf <- subset(water_capacitydf, Technology == "H_RW" | Technology == 'C_VRF' | Technology == 'H_RWTANK'  | Technology == 'H_GW' | Technology == 'C_RWTANK')
+
+elc_capacitydf <- subset(elc_capacitydf, Technology == 'C_BAT' | Technology == "H_BAT" | Technology == 'C_HB' | Technology == 'C_PV' | Technology == 'C_WND' | Technology == 'H_PV')
+
+purchasedf <- subset(purchasedf, !(Data == 'U_ELC1' | purchasedf$Data == 'U_ELC2' | purchasedf$Data == 'U_ELC3' | purchasedf$Data == 'U_ELC4' | purchasedf$Data == 'U_ELC5'   | purchasedf$Data == 'U_H2O1' | purchasedf$Data == 'U_H2O2' | purchasedf$Data == 'U_H2O3' | purchasedf$Data == 'U_H2O4' | purchasedf$Data == 'U_H2O5'))
+
+prod_elcdf <- subset(prod_elcdf, !(Tech == 'H_BAT' | Tech == 'C_BAT'))
+
+prod_waterdf <- subset(prod_waterdf, !(Tech == 'H_RWTANK' | Tech == 'C_RWTANK'))
+
+#Subtracts Curtailment (ELC)
+#Note have to manually track the elc curtailment for individual runs, assumed they wouldn't curtail
+
+
+
+for(i in 1:nrow(prod_elcdf)){
+
+if(nrow(curt_elc_1b) > 0){
+for(j in 1:nrow(curt_elc_1b)){
+  
+  if(curt_elc_1b[j,1] == prod_elcdf[i,1] & prod_elcdf[i,3] == '32 Houses'){
+    prod_elcdf[i,2] <- prod_elcdf[i,2] - curt_elc_1b[j,2]
+  }
+}
+}
+  
+if(nrow(curt_elc_10b) > 0){  
+for(j in 1:nrow(curt_elc_10b)){
+  
+  if(curt_elc_10b[j,1] == prod_elcdf[i,1] & prod_elcdf[i,3] == '320 Houses'){
+    prod_elcdf[i,2] <- prod_elcdf[i,2] - curt_elc_10b[j,2]
+  }
+}
+}
+
+if(nrow(curt_elc_100b) > 0){  
+for(j in 1:nrow(curt_elc_100b)){
+  
+  if(curt_elc_100b[j,1] == prod_elcdf[i,1] & prod_elcdf[i,3] == '3200 Houses'){
+    prod_elcdf[i,2] <- prod_elcdf[i,2] - curt_elc_100b[j,2]
+  }
+}
+}
+  
+if(foldername == 'Limited_Utility/'){  
+
+  
+  if(prod_elcdf[i,1] == 'H_PV' & prod_elcdf[i,3] == 'Individual'){
+    prod_elcdf[i,2] <- prod_elcdf[i,2] - 14243.17
+  }
+}
+
+
+}
+
+#Subtracts Curtailment (Water)
+#Note have to manually track the water curtailment for individual runs, assumed they wouldn't curtail
+
+for(i in 1:nrow(prod_waterdf)){
+
+if(nrow(curt_water_1b) > 0){
+for(j in 1:nrow(curt_water_1b)){
+  
+  if(curt_water_1b[j,1] == prod_waterdf[i,1] & prod_waterdf[i,3] == '32 Houses'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2] - curt_water_1b[j,2]
+  }
+}
+}
+  
+if(nrow(curt_water_10b) > 0){  
+for(j in 1:nrow(curt_water_10b)){
+  
+  if(curt_water_10b[j,1] == prod_waterdf[i,1] & prod_waterdf[i,3] == '320 Houses'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2] - curt_water_10b[j,2]
+  }
+}
+}
+
+if(nrow(curt_water_100b) > 0){  
+for(j in 1:nrow(curt_water_100b)){
+  
+  if(curt_water_100b[j,1] == prod_waterdf[i,1] & prod_waterdf[i,3] == '3200 Houses'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2] - curt_water_100b[j,2]
+  }
+}
+}
+  if(foldername == 'Limited_Utility/'){  
+
+  
+  if(prod_waterdf[i,1] == 'H_GW' & prod_waterdf[i,3] == 'Individual'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2] - 495441.4
+  }
+  if(prod_waterdf[i,1] == 'H_RW' & prod_waterdf[i,3] == 'Individual'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2] - 11953.23
+  }
+}
+
+  
+
+}
+
+#Divides by the number of houses to get an average per house
+
+
+for(i in 1:nrow(prod_elcdf)){
+  if(prod_elcdf[i,3] == 'Individual' | prod_elcdf[i,3] == '32 Houses'){
+    prod_elcdf[i,2] <- prod_elcdf[i,2]/32
+  }
+  if(prod_elcdf[i,3] == '320 Houses'){
+    prod_elcdf[i,2] <- prod_elcdf[i,2]/320
+  }
+  if( prod_elcdf[i,3] == '3200 Houses'){
+    prod_elcdf[i,2] <- prod_elcdf[i,2]/3200
+  }
+}
+
+for(i in 1:nrow(prod_waterdf)){
+  if(prod_waterdf[i,3] == 'Individual' | prod_waterdf[i,3] == '32 Houses'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2]/32
+  }
+  if(prod_waterdf[i,3] == '320 Houses'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2]/320
+  }
+  if( prod_waterdf[i,3] == '3200 Houses'){
+    prod_waterdf[i,2] <- prod_waterdf[i,2]/3200
+  }
+}
+
+if(nrow(purchasedf) >= 1){
+for(i in 1:nrow(purchasedf)){
+  if(purchasedf[i,3] == 'Individual' | purchasedf[i,3] == '32 Houses'){
+    purchasedf[i,2] <- purchasedf[i,2]/32
+  }
+  if(purchasedf[i,3] == '320 Houses'){
+    purchasedf[i,2] <- purchasedf[i,2]/320
+  }
+  if(purchasedf[i,3] == '3200 Houses'){
+    purchasedf[i,2] <- purchasedf[i,2]/3200
+  }
+}
+}
+
+
+
+
+
+
+
+#Subsets production by scenario for pi charts
+
+
+
+ind_epi <- subset(prod_elcdf, Scenario == 'Individual')
+ind_epi <- ind_epi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+h32_epi <- subset(prod_elcdf, Scenario == '32 Houses')
+h32_epi <- h32_epi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+h320_epi <- subset(prod_elcdf, Scenario == '320 Houses')
+h320_epi <- h320_epi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+h3200_epi <- subset(prod_elcdf, Scenario == '3200 Houses')
+h3200_epi <- h3200_epi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+
+ind_wpi <- subset(prod_waterdf, Scenario == 'Individual')
+ind_wpi <- ind_wpi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+h32_wpi <- subset(prod_waterdf, Scenario == '32 Houses')
+h32_wpi <- h32_wpi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+h320_wpi <- subset(prod_waterdf, Scenario == '320 Houses')
+h320_wpi <- h320_wpi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+h3200_wpi <-subset(prod_waterdf, Scenario == '3200 Houses')
+h3200_wpi <- h3200_wpi %>%
+  arrange(desc(Tech)) %>%
+  mutate(lab.ypos = cumsum(`1`) - 0.5*`1`)
+
+
+```
+
+```{r}
+cost_graph <- ggplot() + geom_bar(data = costdf, aes(y = Dollars, x = Scenario, fill = Scenario), stat = 'identity') +
+  geom_point(data = fracdf, aes(y = Value*5000, x = Scenario, shape = Data_Type), size = 4) +
+  scale_y_continuous(sec.axis = sec_axis(~./4700, name = 'Fraction of Demand by Tech'))+
+  theme_minimal()+
+  theme(plot.title = element_text(size = 24, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 18), legend.title = element_text(size = 24), axis.title = element_text(size = 24), axis.text = element_text(size = 16))+
+  labs(title = 'Costs and Technology Fractions of Different Scenarios')+
+  scale_fill_brewer(palette = "Dark2")
+  
+
+capacity_graph <- ggplot() + geom_bar(data = capacitydf , aes( x = Scenario, y = Capacity, fill = Technology), stat = 'identity', position = position_dodge()) +  
+  theme_minimal()+
+  labs(title = 'Capacity of Different Scenarios')
+
+elccap_graph <- ggplot() + geom_bar(data = elc_capacitydf , aes( x = Scenario, y = Capacity, fill = Technology), stat = 'identity', position = position_dodge()) +  
+  theme_minimal()+
+  labs(title = 'Electric Capacity of Different Scenarios')
+
+watercap_graph <- ggplot() + geom_bar(data = water_capacitydf , aes( x = Scenario, y = Capacity, fill = Technology), stat = 'identity', position = position_dodge()) +  
+  theme_minimal()+
+  labs(title = 'Water Capacity of Different Scenarios')
+```
+
+
+```{r}
+
+
+#Individual Pi graph
+
+
+
+ind_epi_graph <- ggplot(ind_epi) + geom_bar(data = ind_epi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity") +
+  coord_polar("y", start = 0)+
+  geom_text(aes(x = '', y = ind_epi$lab.ypos, label = percent(ind_epi$`1`/sum(ind_epi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '32 Individual Houses', x = '', y = 'kWh', size = 8)+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))
+ 
+h32_epi_graph <- ggplot() + geom_bar(data = h32_epi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity") +
+  coord_polar("y", start = 0)+
+  geom_text(aes(x = '', y = h32_epi$lab.ypos, label = percent(h32_epi$`1`/sum(h32_epi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '32 Houses', x = '', y = 'kWh', size = 8)+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))
+
+h320_epi_graph <- ggplot() + geom_bar(data = h320_epi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity") +
+  coord_polar("y", start = 0)+
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), panel.grid = element_blank())+
+   geom_text(aes(x = '', y = h320_epi$lab.ypos, label = percent(h320_epi$`1`/sum(h320_epi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '320 Houses', x = '', y = 'kWh', size = 8)+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))
+  
+h3200_epi_graph <- ggplot() + geom_bar(data = h3200_epi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity") +
+  coord_polar("y", start = 0)+
+   geom_text(aes(x = '', y = h3200_epi$lab.ypos, label = percent(h3200_epi$`1`/sum(h3200_epi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '3200 Houses', x = '', y = 'kWh', size = 8)+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))
+
+
+#Water Pi Graphs
+
+ind_wpi_graph <- ggplot() + geom_bar(data = ind_wpi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity")+
+  coord_polar("y", start = 0)+
+   geom_text(aes(x = '', y = ind_wpi$lab.ypos, label = percent(ind_wpi$`1`/sum(ind_wpi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '32 Individual Houses', x = '', y = 'kWh', size = 8)+
+    scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))
+
+h32_wpi_graph <- ggplot() + geom_bar(data = h32_wpi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity") +
+  coord_polar("y", start = 0)+
+   geom_text(aes(x = '', y = h32_wpi$lab.ypos, label = percent(h32_wpi$`1`/sum(h32_wpi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '32 Houses', x = '', y = 'kWh', size = 8)+
+    scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))
+
+h320_wpi_graph <- ggplot() + geom_bar(data = h320_wpi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity") +
+  coord_polar("y", start = 0)+
+   geom_text(aes(x = '', y = h320_wpi$lab.ypos, label = percent(h320_wpi$`1`/sum(h320_wpi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '320 Houses', x = '', y = 'kWh', size = 8)+
+    scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))
+
+h3200_wpi_graph <- ggplot() + geom_bar(data = h3200_wpi, aes (x = "", y = `1`, fill = Tech), width = 1 , stat = "identity") +
+  coord_polar("y", start = 0)+
+   geom_text(aes(x = '', y = h3200_wpi$lab.ypos, label = percent(h3200_wpi$`1`/sum(h3200_wpi$`1`)) ),color = 'white', size = 4)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), plot.title = element_text(size = 10, face = 'bold'), legend.position = 'right', legend.text = element_text(size = 8), legend.title = element_text(size = 8), axis.text = element_blank(), axis.title = element_blank(),legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = '3200 Houses', x = '', y = 'kWh', size = 8)+
+    scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))
+
+
+epi <- ggarrange(ind_epi_graph, h32_epi_graph, h320_epi_graph, h3200_epi_graph,  nrow = 2, ncol = 2)
+#epi <- annotate_figure(epi, fig.lab = "Average Produced Electricity by Source", fig.lab.face = 'bold', fig.lab.size = 20)
+wpi <- ggarrange(ind_wpi_graph, h32_wpi_graph, h320_wpi_graph, h3200_wpi_graph,  nrow = 2, ncol = 2)
+#wpi <- annotate_figure(wpi,  fig.lab = 'Average Produced Water by Source', fig.lab.face = 'bold', fig.lab.pos = 'top', fig.lab.size = 20)
+
+
+```
+
+
+```{r}
+elc_graph <- ggplot() + geom_bar(data = prod_elcdf, aes (x = Scenario, y = `1`, fill = Tech), stat = "identity") +
+  theme_minimal()+
+    theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_blank(), axis.text.y.left = element_blank(), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm') ) +
+  labs(title = 'Average Produced Electric per House by Technology for Different Scenarios', y = 'Annual Electricity Production (kWh)')+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "wIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))
+
+water_graph <- ggplot() + geom_bar(data = prod_waterdf, aes (x = Scenario, y = `1`/1000, fill = Tech), stat = "identity", position = position_dodge()) +
+  theme_minimal()+
+     theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_blank(), axis.text.y.left = element_blank(), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm') ) +
+  labs(title = 'Average Produced Water per House by Technology for Different Scenarios', y = 'Annual Water Production (kGals)')+
+  scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))
+
+
+purchase_graph <- ggplot() + geom_bar(data = purchasedf, aes(x = Scenario, y = Value, fill = Data), stat = 'identity', position = position_dodge()) +  
+  theme_minimal()+
+  labs(title = 'Average Purchases per House under Different Scenarios', y = 'Number of Units Purchased')+
+  scale_fill_manual(values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6",
+        "C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", "Utility" = "#6A3D9A", 'H_GW' = 'darkorange2', 'C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4'))
+```
+
+
+```{r}
+# #Stacked Area Energy
+# 
+# energy_graph_1b <- ggplot(daily_energy_1b, aes(x = day, y = energy_use, fill = Technology))+geom_area(position = 'stack') +  
+#   theme_minimal()+
+#   theme(plot.title = element_text(size = 24, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 18), legend.title = element_blank(), axis.title = element_text(size = 24), axis.text = element_text(size = 16), axis.title.x = element_blank())+
+#   labs(title = '32 Houses', y = 'kWh', x = 'Time')+
+#   scale_fill_manual(values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "U_ELC1" = 'gray45', "U_ELC2" = 'gray38', "U_ELC3" = 'gray32', "U_ELC4" = 'gray25', "U_ELC5" = 'gray15', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4', 'Charging' = 'chocolate4'))+
+#   coord_cartesian(ylim = c(-15,85))
+# 
+# energy_graph_10b <- ggplot(daily_energy_10b, aes(x = day, y = energy_use, fill = Technology))+geom_area(position = 'stack') +  
+#   theme_minimal()+
+#   theme(plot.title = element_text(size = 24, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 18), legend.title = element_blank(), axis.title = element_text(size = 24), axis.text = element_text(size = 16), axis.text.y = element_text(size = 16), axis.title.y = element_blank(), axis.title.x = element_blank())+
+#   labs(title = '320 Houses', y = 'kWh', x = 'Time')+
+#   scale_fill_manual(values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "U_ELC1" = 'gray45', "U_ELC2" = 'gray38', "U_ELC3" = 'gray32', "U_ELC4" = 'gray25', "U_ELC5" = 'gray15', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4', 'Charging' = 'chocolate4'))+
+#   coord_cartesian(ylim = c(-150,850))
+# 
+# energy_graph_100b <- ggplot(daily_energy_100b, aes(x = day, y = energy_use, fill = Technology))+geom_area(position = 'stack') +  
+#   theme_minimal()+
+#   theme(plot.title = element_text(size = 24, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 18), legend.title = element_blank(), axis.title = element_text(size = 24), axis.text = element_text(size = 16), axis.text.y = element_text(size = 16), axis.title.y = element_blank(), axis.title.x = element_blank())+
+#   labs(title = '3200 Houses', y = 'kWh', x = 'Time')+
+#   scale_fill_manual(values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "U_ELC1" = 'gray45', "U_ELC2" = 'gray38', "U_ELC3" = 'gray32', "U_ELC4" = 'gray25', "U_ELC5" = 'gray15', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4', 'Charging' = 'chocolate4'))+
+#   coord_cartesian(ylim = c(-1500,8500))
+# 
+# 
+# steg <- ggarrange(energy_graph_1b, energy_graph_10b, energy_graph_100b,  nrow = 1, ncol = 3)
+# #steg <- annotate_figure(steg, fig.lab = "Hourly Energy Use", fig.lab.face = 'bold', fig.lab.size = 20)
+# 
+# 
+# #Stacked Area Water
+# 
+# 
+# 
+# 
+# 
+# gallon_graph_1b <- ggplot(daily_water_1b, aes(x = day, y = water_use, fill = Technology))+geom_area(position = 'stack')+
+#   theme_minimal()+
+#   theme(plot.title = element_text(size = 24, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 18), legend.title = element_blank(), axis.title = element_text(size = 24), axis.text = element_text(size = 16), axis.title.x = element_blank())+
+#   labs(title = '32 Houses', y = 'Gallons', x = 'Time')+
+#   scale_fill_manual(values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4', 'Storing' = 'aquamarine4'))+
+#   coord_cartesian(ylim = c(-2000,2000))
+# 
+# gallon_graph_10b <- ggplot(daily_water_10b, aes(x = day, y = water_use, fill = Technology))+geom_area(position = 'stack')+
+#   theme_minimal()+
+#   theme(plot.title = element_text(size = 24, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 18), legend.title = element_blank(), axis.title = element_text(size = 24), axis.text = element_text(size = 16), axis.text.y = element_text(size = 16), axis.title.y = element_blank(), axis.title.x = element_blank())+
+#   labs(title = '320 Houses', y = 'Gallons', x = 'Time')+
+#   scale_fill_manual(values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4', 'Storing' = 'aquamarine4'))+
+#   coord_cartesian(ylim = c(-20000,20000))
+# 
+# gallon_graph_100b <- ggplot(daily_water_100b, aes(x = day, y = water_use, fill = Technology))+geom_area(position = 'stack')+
+#   theme_minimal()+
+#   theme(plot.title = element_text(size = 24, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 18), legend.title = element_blank(), axis.title = element_text(size = 24), axis.text = element_text(size = 16), axis.text.y = element_text(size = 16), axis.title.y = element_blank(), axis.title.x = element_blank())+
+#   labs(title = '3200 Houses', y = 'Gallons', x = 'Time')+
+#   scale_fill_manual(values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4', 'Storing' = 'aquamarine4'))+
+#   coord_cartesian(ylim = c(-200000,200000))
+# 
+# 
+# stwg <- ggarrange(gallon_graph_1b, gallon_graph_10b, gallon_graph_100b,  nrow = 1, ncol = 3)
+# #stwg <- annotate_figure(stwg, fig.lab = "Hourly Water Use", fig.lab.face = 'bold', fig.lab.size = 20)
+```
+
+
+```{r}
+#Monthly Production of Energy and Water
+
+eprod_month_1b <- subset(eprod_month_1b, Tech != 'C_BAT')
+
+month_eprod_1b <- ggplot() + geom_bar(data = eprod_month_1b, aes (x = Month, y = Value/1000 , fill = Tech), stat = "identity")+
+  #geom_point(data = demandt, aes(y = kWh, x = Month), size = 2)+
+  theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 90), axis.title.x = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "U_ELC1" = 'U_ELC1', "U_ELC2" = 'U_ELC2', "U_ELC3" = 'U_ELC3', "U_ELC4" = 'U_ELC4', "U_ELC5" = 'U_ELC5', 'H_BAT' = 'IND-BAT', 'C_BAT' = 'COM-BAT'), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "U_ELC1" = 'gray45', "U_ELC2" = 'gray38', "U_ELC3" = 'gray32', "U_ELC4" = 'gray25', "U_ELC5" = 'gray15', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4'))+
+  labs(title = '32 Houses', y = 'Total Monthly Electricity Production (MWh)')+
+  coord_cartesian(ylim = c(0,50.000))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+month_eprod_10b <- ggplot() + geom_bar(data = eprod_month_10b, aes (x = Month, y = Value/1000 , fill = Tech), stat = "identity")+
+  #geom_point(data = demandt, aes(y = kWh*10, x = Month), size = 2)+
+  theme_minimal()+
+   theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.title = element_blank(), legend.text = element_text(size = 8), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 90), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "U_ELC1" = 'U_ELC1', "U_ELC2" = 'U_ELC2', "U_ELC3" = 'U_ELC3', "U_ELC4" = 'U_ELC4', "U_ELC5" = 'U_ELC5', 'H_BAT' = 'IND-BAT', 'C_BAT' = 'COM-BAT'), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "U_ELC1" = 'gray45', "U_ELC2" = 'gray38', "U_ELC3" = 'gray32', "U_ELC4" = 'gray25', "U_ELC5" = 'gray15', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4'))+
+  labs(title = '320 Houses', y = 'Total Monthly Electricity Production (MWh)')+
+  coord_cartesian(ylim = c(0,500.000))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+month_eprod_100b <- ggplot() + geom_bar(data = eprod_month_100b, aes (x = Month, y = Value/1000 , fill = Tech), stat = "identity")+
+  #geom_point(data = demandt, aes(y = kWh*100, x = Month), size = 2)+
+  theme_minimal()+
+   theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 90), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "U_ELC1" = 'U_ELC1', "U_ELC2" = 'U_ELC2', "U_ELC3" = 'U_ELC3', "U_ELC4" = 'U_ELC4', "U_ELC5" = 'U_ELC5', 'H_BAT' = 'IND-BAT', 'C_BAT' = 'COM-BAT'), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "U_ELC1" = 'gray45', "U_ELC2" = 'gray38', "U_ELC3" = 'gray32', "U_ELC4" = 'gray25', "U_ELC5" = 'gray15', 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4'))+
+  labs(title = '3200 Houses', y = 'Total Monthly Electricity Production (MWh)')+
+  coord_cartesian(ylim = c(0,5000.000))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+
+
+
+mep <- ggarrange(month_eprod_1b, month_eprod_10b, month_eprod_100b, nrow = 1, ncol = 3)
+#mep <- annotate_figure(mep, fig.lab = "Monthly Electricity Production", fig.lab.face = 'bold', fig.lab.size = 20)
+
+
+wprod_month_1b <- subset(wprod_month_1b, Tech != 'H_RWTANK')
+wprod_month_10b <- subset(wprod_month_10b, Tech != 'H_RWTANK')
+wprod_month_100b <- subset(wprod_month_100b, Tech != 'H_RWTANK')
+
+month_wprod_1b <- ggplot() + geom_bar(data = wprod_month_1b, aes (x = Month, y = Value/1000 , fill = Tech), stat = "identity")+
+  #geom_point(data = demandt, aes(y = Gal/1000, x = Month), size = 2)+
+  theme_minimal()+
+   theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 90),  axis.title.x = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+   scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "U_H2O1" = 'U_H2O1', "U_H2O2" = 'U_H2O2', "U_H2O3" = 'U_H2O3', "U_H2O4" = 'U_H2O4', "U_H2O5" = 'U_H2O5','C_RWTANK' = 'CRWTANK', 'H_RWTANK' = 'RWTANK'), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4') )+
+  labs(title = '32 Houses', y = 'Total Monthly Water Production (kGals)')+
+  coord_cartesian(ylim = c(0,700))+
+  guides(fill=guide_legend(nrow = 3, byrow = TRUE))
+
+month_wprod_10b <- ggplot() + geom_bar(data = wprod_month_10b, aes (x = Month, y = Value/1000 , fill = Tech), stat = "identity")+
+  #geom_point(data = demandt, aes(y = Gal*10/1000, x = Month), size = 2)+
+  theme_minimal()+
+  
+   theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_blank(), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 90),  axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+   scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "U_H2O1" = 'U_H2O1', "U_H2O2" = 'U_H2O2', "U_H2O3" = 'U_H2O3', "U_H2O4" = 'U_H2O4', "U_H2O5" = 'U_H2O5','C_RWTANK' = 'CRWTANK', 'H_RWTANK' = 'RWTANK'), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4') )+
+  labs(title = '320 Houses', y = 'Total Monthly Water Production (kGals)')+
+  coord_cartesian(ylim = c(0,7000))+
+  guides(fill=guide_legend(nrow = 3, byrow = TRUE))
+
+month_wprod_100b <- ggplot() + geom_bar(data = wprod_month_100b, aes (x = Month, y = Value/1000 , fill = Tech), stat = "identity")+
+  #geom_point(data = demandt, aes(y = Gal*100/1000, x = Month), size = 2)+
+  theme_minimal()+
+   theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_blank(), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 90),  axis.title.x = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ))+
+   scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "U_H2O1" = 'U_H2O1', "U_H2O2" = 'U_H2O2', "U_H2O3" = 'U_H2O3', "U_H2O4" = 'U_H2O4', "U_H2O5" = 'U_H2O5','C_RWTANK' = 'CRWTANK', 'H_RWTANK' = 'RWTANK'), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4') )+
+  labs(title = '3200 Houses', y = 'Total Monthly Water Production (kGals)')+
+  coord_cartesian(ylim = c(0,70000))+
+  guides(fill=guide_legend(nrow = 3, byrow = TRUE))
+
+mwp <- ggarrange(month_wprod_1b, month_wprod_10b, month_wprod_100b, nrow = 1, ncol = 3)
+#mwp <- annotate_figure(mwp, fig.lab = "Monthly Water Production", fig.lab.face = 'bold', fig.lab.size = 20)
+```
+
+
+```{r}
+hourlys <- ggarrange(hourly_elc, hourly_water, nrow = 1, ncol = 2)
+
+cost_graph
+capacity_graph
+elc_graph
+water_graph
+purchase_graph
+mep
+mwp
+epi
+wpi
+hourlys
+#steg
+#stwg
+
+```
+
+```{r}
+if(foldername == 'CoOp/'){
+  
+  costdf_coop <- costdf
+  fracdf_coop <- fracdf
+  elc_capacitydf_coop <- elc_capacitydf
+  water_capacitydf_coop <- water_capacitydf
+  prod_elcdf_coop <- prod_elcdf
+  prod_waterdf_coop <- prod_waterdf
+  energy_pi_coop <- epi
+  water_pi_coop <- wpi
+  #daily_energy_coop <- steg
+  #daily_water_coop <- stwg
+  eprod_month_coop <- mep
+  wprod_month_coop <- mwp
+  
+  ggsave(filename = "CoOp/energypi_coop.pdf", energy_pi_coop)
+  ggsave(filename = "CoOp/waterpi_coop.pdf", water_pi_coop)
+
+  ggsave(filename = "CoOp/month_elc_coop.pdf", eprod_month_coop)
+  ggsave(filename = "CoOp/month_water_coop.pdf", wprod_month_coop)
+  ggsave(filename = "CoOp/hourlys.pdf", hourlys)
+  
+  
+  #ggsave(filename = "CoOp/stackedenergy_coop.pdf", daily_energy_coop)
+  #ggsave(filename = "CoOp/stackedwater_coop.pdf", daily_water_coop)
+ 
+}
+
+if(foldername == 'ELC_Only/'){
+  costdf_elc <- costdf
+  fracdf_elc <- fracdf
+  elc_capacitydf_elc <- elc_capacitydf
+  water_capacitydf_elc <- water_capacitydf
+  energy_pi_elc <- epi
+  prod_elcdf_elc <- prod_elcdf
+  prod_waterdf_elc <- prod_waterdf
+  #daily_energy_elc <- steg
+  #daily_water_elc <- stwg
+  eprod_month_elc <- mep
+  wprod_month_elc <- mwp
+  
+  ggsave(filename = "ELC_Only/energypi_elc.pdf", energy_pi_elc, height = 12, width = 12, units = 'in')
+  
+  ggsave(filename = "ELC_Only/month_elc_elc.pdf", eprod_month_elc, height = 15, width = 24, units = 'in')
+  
+  #ggsave(filename = "ELC_Only/stackedenergy_elc.pdf", daily_energy_elc, height = 15, width = 24, units = 'in')
+  
+ 
+}
+
+if(foldername == 'Water_Only/'){
+  costdf_water <- costdf
+  fracdf_water <- fracdf
+  elc_capacitydf_water <- elc_capacitydf
+  water_capacitydf_water <- water_capacitydf
+  water_pi_water <- wpi
+  prod_elcdf_water <- prod_elcdf
+  prod_waterdf_water <- prod_waterdf
+  #daily_energy_water <- steg
+  #daily_water_water <- stwg
+  eprod_month_water <- mep
+  wprod_month_water <- mwp
+  
+  
+  ggsave(filename = "Water_Only/waterpi_water.pdf", water_pi_water, height = 12, width = 12, units = 'in')
+
+  ggsave(filename = "Water_Only/month_water_water.pdf", wprod_month_water, height = 15, width = 24, units = 'in')
+  
+  #ggsave(filename = "Water_Only/stackedwater_water.pdf", daily_water_water, height = 15, width = 24, units = 'in')
+ 
+}
+
+if(foldername == 'Utility_Only/'){
+  costdf_util <- costdf
+  fracdf_util <- fracdf
+  elc_capacitydf_util <- elc_capacitydf
+  water_capacitydf_util <- water_capacitydf
+  prod_elcdf_util <- prod_elcdf
+  prod_waterdf_util <- prod_waterdf
+  #daily_energy_util <- steg
+  #daily_water_util <- stwg
+  eprod_month_util <- mep
+  wprod_month_util <- mwp
+  
+  ggsave(filename = "Utility_Only/month_elc_util.pdf", eprod_month_util, height = 15, width = 24, units = 'in')
+  
+  ggsave(filename = "Utility_Only/month_water_util.pdf", wprod_month_util, height = 15, width = 24, units = 'in')
+  
+ 
+}
+
+if(foldername == 'Limited_Utility/'){
+  costdf_tech <- costdf
+  fracdf_tech <- fracdf
+  elc_capacitydf_tech <- elc_capacitydf
+  water_capacitydf_tech <- water_capacitydf
+  energy_pi_tech <- epi
+  water_pi_tech <- wpi
+  prod_elcdf_tech <- prod_elcdf
+  prod_waterdf_tech <- prod_waterdf
+  #daily_energy_tech <- steg
+  #daily_water_tech <- stwg
+  eprod_month_tech <- mep
+  wprod_month_tech <- mwp
+  
+  ggsave(filename = "Limited_Utility/cost_tech.pdf", cost_graph)
+  
+  ggsave(filename = "Limited_Utility/energypi_tech.pdf", energy_pi_tech)
+  ggsave(filename = "Limited_Utility/waterpi_tech.pdf", water_pi_tech)
+
+  ggsave(filename = "Limited_Utility/month_elc_tech.pdf", eprod_month_tech)
+  ggsave(filename = "Limited_Utility/month_water_tech.pdf", wprod_month_tech)
+  ggsave(filename = "Limited_Utility/hourlys.pdf", hourlys)
+  
+  #ggsave(filename = "Limited_Utility/stackedenergy_tech.pdf", daily_energy_tech)
+  #ggsave(filename = "Limited_Utility/stackedwater_tech.pdf", daily_water_tech)
+ 
+}
+
+cost_graph
+
+
+```
+
+
+
+
+
+```{r}
+save.image(file = "Co-Op_graphs.RData")
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

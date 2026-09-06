@@ -1,0 +1,614 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(ggplot2)
+library(magrittr)
+library(dplyr)
+library(plyr)
+#library(rowr)
+#library(xlsx)
+#library(openxlsx)
+library(readxl)
+#library(reshape2)
+library(svMisc)
+library(RColorBrewer)
+library(scales)
+library(gridExtra)
+library(ggpubr)
+
+load("~/Coding/R/Research/Co-Opt Paper/graph_data.RData")
+```
+
+```{r}
+
+
+#Could automate this but dont want too
+
+
+#Co-Optimized
+
+
+Techtype <- c('Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Generation', 'Generation')
+elc_capacitydf_coop <- cbind(elc_capacitydf_coop,Techtype)
+
+
+
+for(i in 1:nrow(elc_capacitydf_coop)){
+  
+if(elc_capacitydf_coop[i,3] == 'Individual'){
+  elc_capacitydf_coop[i,2] <- elc_capacitydf_coop[i,2]/32
+}
+  
+if(elc_capacitydf_coop[i,3] == '32 Houses'){
+  elc_capacitydf_coop[i,2] <- elc_capacitydf_coop[i,2]/32
+}
+  
+  if(elc_capacitydf_coop[i,3] == '320 Houses'){
+  elc_capacitydf_coop[i,2] <- elc_capacitydf_coop[i,2]/320
+}
+
+  if(elc_capacitydf_coop[i,3] == '3200 Houses'){
+  elc_capacitydf_coop[i,2] <- elc_capacitydf_coop[i,2]/3200
+}
+}
+
+
+
+Techtype <- c('Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Generation', 'Storage')
+water_capacitydf_coop <- cbind(water_capacitydf_coop,Techtype)
+
+
+
+for(i in 1:nrow(water_capacitydf_coop)){
+  
+if(water_capacitydf_coop[i,3] == 'Individual'){
+  water_capacitydf_coop[i,2] <- water_capacitydf_coop[i,2]/32/1000
+}
+  
+if(water_capacitydf_coop[i,3] == '32 Houses'){
+  water_capacitydf_coop[i,2] <- water_capacitydf_coop[i,2]/32/1000
+}
+  
+  if(water_capacitydf_coop[i,3] == '320 Houses'){
+  water_capacitydf_coop[i,2] <- water_capacitydf_coop[i,2]/320/1000
+}
+
+  if(water_capacitydf_coop[i,3] == '3200 Houses'){
+  water_capacitydf_coop[i,2] <- water_capacitydf_coop[i,2]/3200/1000
+}
+}
+
+
+elc_capacitydf_coop$Scenario <- factor(elc_capacitydf_coop$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+water_capacitydf_coop$Scenario <- factor(water_capacitydf_coop$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+
+ec1 <- ggplot() + geom_bar(data = elc_capacitydf_coop, aes(x = Techtype, y = Capacity, fill = Technology), stat = 'identity' )+
+ facet_wrap(~Scenario)+
+  #theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 7.5), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 15), strip.text.x = element_text(size = 8, face = 'bold'),legend.key.width = unit(0.1, 'in'), legend.key.height = unit(0.1,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+labs(title = 'Co-Optimized', y = 'Average Installed Electricity Capcacity (kW)', x = '')+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL", 'H_BAT' = 'IND-BAT', 'C_BAT' = 'COM-BAT'), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6", 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4'))+
+  coord_cartesian(ylim = c(0,9))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+wc1 <- ggplot() + geom_bar(data = water_capacitydf_coop, aes(x = Techtype, y = Capacity, fill = Technology), stat = 'identity')+
+  facet_wrap(~Scenario)+
+  #theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 15), strip.text.x = element_text(size = 8, face = 'bold'),legend.key.width = unit(0.1, 'in'), legend.key.height = unit(0.1,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = 'Co-Optimized', y = 'Average Installed Water Capacity (kGals)', x = '')+
+  scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'CRWTANK', 'H_RWTANK' = 'RWTANK'), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4') )+
+  coord_cartesian(ylim = c(0,1.25))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+
+
+#Limited Utility
+
+
+Techtype <- c('Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Generation', 'Storage')
+elc_capacitydf_tech <- cbind(elc_capacitydf_tech,Techtype)
+
+
+
+for(i in 1:nrow(elc_capacitydf_tech)){
+  
+if(elc_capacitydf_tech[i,3] == 'Individual'){
+  elc_capacitydf_tech[i,2] <- elc_capacitydf_tech[i,2]/32
+}
+  
+if(elc_capacitydf_tech[i,3] == '32 Houses'){
+  elc_capacitydf_tech[i,2] <- elc_capacitydf_tech[i,2]/32
+}
+  
+  if(elc_capacitydf_tech[i,3] == '320 Houses'){
+  elc_capacitydf_tech[i,2] <- elc_capacitydf_tech[i,2]/320
+}
+
+  if(elc_capacitydf_tech[i,3] == '3200 Houses'){
+  elc_capacitydf_tech[i,2] <- elc_capacitydf_tech[i,2]/3200
+}
+}
+
+
+Techtype <- c('Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Generation', 'Storage')
+water_capacitydf_tech <- cbind(water_capacitydf_tech,Techtype)
+
+
+
+for(i in 1:nrow(water_capacitydf_tech)){
+  
+if(water_capacitydf_tech[i,3] == 'Individual'){
+  water_capacitydf_tech[i,2] <- water_capacitydf_tech[i,2]/32/1000
+}
+  
+if(water_capacitydf_tech[i,3] == '32 Houses'){
+  water_capacitydf_tech[i,2] <- water_capacitydf_tech[i,2]/32/1000
+}
+  
+  if(water_capacitydf_tech[i,3] == '320 Houses'){
+  water_capacitydf_tech[i,2] <- water_capacitydf_tech[i,2]/320/1000
+}
+
+  if(water_capacitydf_tech[i,3] == '3200 Houses'){
+  water_capacitydf_tech[i,2] <- water_capacitydf_tech[i,2]/3200/1000
+}
+}
+
+elc_capacitydf_tech$Scenario <- factor(elc_capacitydf_tech$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+water_capacitydf_tech$Scenario <- factor(water_capacitydf_tech$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+
+
+ec2 <- ggplot() + geom_bar(data = elc_capacitydf_tech, aes(x = Techtype, y = Capacity, fill = Technology), stat = 'identity' )+
+ facet_wrap(~Scenario)+
+  #theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 15), axis.text.y = element_blank(), axis.title.y = element_blank(), strip.text.x = element_text(size = 8, face = 'bold'),legend.key.width = unit(0.1, 'in'), legend.key.height = unit(0.1,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'), axis.ticks.y = element_blank())+
+labs(title = 'Limited Utility', y = 'Average Installed Electricity Capcacity (kW)', x = '')+
+ scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL", 'H_BAT' = 'IND-BAT', 'C_BAT' = 'COM-BAT'), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6", 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4'))+
+  coord_cartesian(ylim = c(0,9))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+wc2 <- ggplot() + geom_bar(data = water_capacitydf_tech, aes(x = Techtype, y = Capacity, fill = Technology), stat = 'identity')+
+  facet_wrap(~Scenario)+
+  #theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 15), axis.text.y = element_blank(), axis.title.y = element_blank(), strip.text.x = element_text(size = 8, face = 'bold'),legend.key.width = unit(0.1, 'in'), legend.key.height = unit(0.1,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'), axis.ticks.y = element_blank())+
+  labs(title = 'Limited Utility', y = 'Average Installed Water Capacity (kGals)', x = '')+
+   scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'CRWTANK', 'H_RWTANK' = 'RWTANK'), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4') )+
+  coord_cartesian(ylim = c(0,1.25))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+
+#Electricity or Water Only
+
+
+Techtype <- c('Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Generation', 'Generation', 'Generation')
+elc_capacitydf_elc <- cbind(elc_capacitydf_elc,Techtype)
+
+
+
+
+
+
+for(i in 1:nrow(elc_capacitydf_elc)){
+  
+if(elc_capacitydf_elc[i,3] == 'Individual'){
+  elc_capacitydf_elc[i,2] <- elc_capacitydf_elc[i,2]/32
+}
+  
+if(elc_capacitydf_elc[i,3] == '32 Houses'){
+  elc_capacitydf_elc[i,2] <- elc_capacitydf_elc[i,2]/32
+}
+  
+  if(elc_capacitydf_elc[i,3] == '320 Houses'){
+  elc_capacitydf_elc[i,2] <- elc_capacitydf_elc[i,2]/320
+}
+
+  if(elc_capacitydf_elc[i,3] == '3200 Houses'){
+  elc_capacitydf_elc[i,2] <- elc_capacitydf_elc[i,2]/3200
+}
+}
+
+
+
+Techtype <- c('Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Storage', 'Generation', 'Generation', 'Generation', 'Storage')
+water_capacitydf_water <- cbind(water_capacitydf_water,Techtype)
+
+
+for(i in 1:nrow(water_capacitydf_water)){
+  
+if(water_capacitydf_water[i,3] == 'Individual'){
+  water_capacitydf_water[i,2] <- water_capacitydf_water[i,2]/32/1000
+}
+  
+if(water_capacitydf_water[i,3] == '32 Houses'){
+  water_capacitydf_water[i,2] <- water_capacitydf_water[i,2]/32/1000
+}
+  
+  if(water_capacitydf_water[i,3] == '320 Houses'){
+  water_capacitydf_water[i,2] <- water_capacitydf_water[i,2]/320/1000
+}
+
+  if(water_capacitydf_water[i,3] == '3200 Houses'){
+  water_capacitydf_water[i,2] <- water_capacitydf_water[i,2]/3200/1000
+}
+}
+
+
+elc_capacitydf_elc$Scenario <- factor(elc_capacitydf_elc$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+water_capacitydf_water$Scenario <- factor(water_capacitydf_water$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+
+
+ec3 <- ggplot() + geom_bar(data = elc_capacitydf_elc, aes(x = Techtype, y = Capacity, fill = Technology), stat = 'identity' )+
+ facet_wrap(~Scenario)+
+  #theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 15), axis.text.y = element_blank(), axis.title.y = element_blank(), strip.text.x = element_text(size = 8, face = 'bold'),legend.key.width = unit(0.1, 'in'), legend.key.height = unit(0.1,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'), axis.ticks.y = element_blank())+
+labs(title = 'Electricity Only', y = 'Average Installed Electricity Capcacity (kW)', x = '')+
+ scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL", 'H_BAT' = 'IND-BAT', 'C_BAT' = 'COM-BAT'), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6", 'H_BAT' = 'chocolate', 'C_BAT' = 'chocolate4'))+
+  coord_cartesian(ylim = c(0,9))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+wc3 <- ggplot() + geom_bar(data = water_capacitydf_water, aes(x = Techtype, y = Capacity, fill = Technology), stat = 'identity')+
+  facet_wrap(~Scenario)+
+  #theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 15), axis.text.y = element_blank(), axis.title.y = element_blank(), strip.text.x = element_text(size = 8, face = 'bold'),legend.key.width = unit(0.1, 'in'), legend.key.height = unit(0.1,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'), axis.ticks.y = element_blank())+
+  labs(title = 'Water Only', y = 'Average Installed Water Capacity (kGals)', x = '')+
+   scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "U_H2O1" = 'U_H2O1', "U_H2O2" = 'U_H2O2', "U_H2O3" = 'U_H2O3', "U_H2O4" = 'U_H2O4', "U_H2O5" = 'U_H2O5','C_RWTANK' = 'CRWTANK', 'H_RWTANK' = 'RWTANK'), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "U_H2O1" = 'gray45', "U_H2O2" = 'gray38', "U_H2O3" = 'gray32', "U_H2O4" = 'gray25', "U_H2O5" = 'gray15','C_RWTANK' = 'aquamarine', 'H_RWTANK' = 'aquamarine4') )+
+  coord_cartesian(ylim = c(0,1.25))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+
+
+
+ec <- ggarrange(ec1,ec2,ec3, nrow = 1, ncol = 3)
+wc <- ggarrange(wc1,wc2,wc3, nrow = 1, ncol = 3)
+
+ec
+wc
+
+# ggsave(filename = 'test.pdf', ec)
+```
+
+```{r}
+
+
+costdf_util[1,2] <- 'Utility'
+fracdf_util[1:2,3] <- 'Utility'
+colnames(fracdf_coop)[1] <- 'Technology_Fraction'
+colnames(fracdf_util)[1] <- 'Technology_Fraction'
+costdf <- rbind(costdf_util[1,],costdf_coop)
+fracdf <- rbind(fracdf_util[1:2,], fracdf_coop)
+costdf$Scenario <- factor(costdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+costdf$Scenario
+
+
+
+
+cg1 <- ggplot() + geom_bar(data = costdf, aes(y = Dollars, x = Scenario, fill = Scenario), stat = 'identity') +
+  geom_point(data = fracdf, aes(y = Value*4000, x = Scenario, shape = Technology_Fraction), size = 2) +
+  scale_y_continuous(sec.axis = sec_axis(~./3800, name = ''), limits = c(0,4000))+
+  theme_minimal()+
+  
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'top', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_blank(), axis.title.x = element_blank(), axis.text.y.right = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = 'Co-Optimized', y = 'Dollars ($)', x = '', size = 8)+
+  
+  scale_fill_brewer(palette = "Dark2")+
+  guides(shape = FALSE)
+  
+
+
+
+colnames(fracdf_elc)[1] <- 'Technology_Fraction'
+costdf <- rbind(costdf_util[1,],costdf_elc)
+fracdf <- rbind(fracdf_util[1:2,], fracdf_elc)
+costdf$Scenario <- factor(costdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+colnames(fracdf)[1] <- 'Technology_Fraction'
+
+
+
+cg2 <- ggplot() + geom_bar(data = costdf, aes(y = Dollars, x = Scenario, fill = Scenario), stat = 'identity') +
+  geom_point(data = fracdf, aes(y = Value*4000, x = Scenario, shape = Technology_Fraction), size = 2) +
+  scale_y_continuous(sec.axis = sec_axis(~./3800, name = 'Fraction of Demand Met by Distributed Technologies'), limits = c(0,4000))+
+  theme_minimal()+
+  
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'top', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_blank(), axis.text.y.left = element_blank(), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = 0, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm') ) +
+  labs(title = 'Electricity Only', y = '', x = '', size = 8)+
+  
+  scale_fill_brewer(palette = "Dark2")+
+  guides(fill = FALSE)
+
+
+colnames(fracdf_water)[1] <- 'Technology_Fraction'
+costdf <- rbind(costdf_util[1,],costdf_water)
+fracdf <- rbind(fracdf_util[1:2,], fracdf_water)
+costdf$Scenario <- factor(costdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+colnames(fracdf)[1] <- 'Technology_Fraction'
+
+
+
+cg3 <- ggplot() + geom_bar(data = costdf, aes(y = Dollars, x = Scenario, fill = Scenario), stat = 'identity') +
+  geom_point(data = fracdf, aes(y = Value*4000, x = Scenario, shape = Technology_Fraction), size = 2) +
+  scale_y_continuous(sec.axis = sec_axis(~./3800, name = ''), limits = c(0,4000))+
+  theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'none', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 10), axis.title.x = element_blank(), axis.text.y.right = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.5, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = 'Water Only', y = 'Dollars ($)', x = '', size = 8)+
+  scale_fill_brewer(palette = "Dark2")+
+  guides(shape = FALSE)
+
+
+  
+colnames(fracdf_tech)[1] <- 'Technology_Fraction'
+costdf <- rbind(costdf_util[1,],costdf_tech)
+fracdf <- rbind(fracdf_util[1:2,], fracdf_tech)
+costdf$Scenario <- factor(costdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+colnames(fracdf)[1] <- 'Technology_Fraction'
+
+
+  
+cg4 <- ggplot() + geom_bar(data = costdf, aes(y = Dollars, x = Scenario, fill = Scenario), stat = 'identity') +
+  geom_point(data = fracdf, aes(y = Value*4000, x = Scenario, shape = Technology_Fraction), size = 2) +
+  scale_y_continuous(sec.axis = sec_axis(~./3800, name = 'Fraction of Demand Met by Distributed Technologies'), limits = c(0,4000))+
+  theme_minimal()+
+  theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'none', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.text.x = element_text(angle = 10), axis.text.y.left = element_blank(), axis.title.x = element_blank(),legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.5, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm'))+
+  labs(title = 'Limited Utility', y = '', x = '', size = 8)+
+  scale_fill_brewer(palette = "Dark2")+
+  guides(fill = FALSE)
+
+
+
+
+#costdf$Dollars <- round(costdf$Dollars, 2)
+#fracdf$Value <- round(fracdf$Value, 2)
+#tt2 <- tableGrob(fracdf, rows = NULL)
+#tt3 <- tableGrob(costdf)
+
+#ggarrange(cg1, ggarrange(tt2, tt3, ncol = 2), nrow = 3, heights = c(10,10))
+
+cg <- ggarrange(cg1, cg2, cg3, cg4, nrow = 2, ncol = 2)
+
+#cg <- annotate_figure(cg, text_grob('Costs and Technology Fractions', face = "bold", size = 14))
+
+
+cg1
+cg
+
+
+# ggsave(filename = "test.pdf", cg)
+
+```
+
+
+```{r}
+prod_elcdf_util[1,3] <- 'Utility'
+prod_waterdf_util[1,3] <- 'Utility'
+prod_elcdf <- rbind(prod_elcdf_util[1,],prod_elcdf_coop)
+prod_waterdf <- rbind(prod_waterdf_util[1,], prod_waterdf_coop)
+prod_elcdf$Scenario <- factor(prod_elcdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+prod_waterdf$Scenario <- factor(prod_waterdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+
+
+eg1 <- ggplot() + geom_bar(data = prod_elcdf, aes (x = Scenario, y = `1`, fill = Tech), stat = "identity") +
+  theme_minimal()+
+    theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8, angle = 45),   axis.text.y.left = element_text(size = 8), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm') ) +
+  labs(title = 'Co-Optimized', y = 'Average Annual Electricity Production (kWh)')+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))+
+  coord_cartesian(ylim = c(0,12500))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+  
+
+wg1 <- ggplot() + geom_bar(data = prod_waterdf, aes (x = Scenario, y = `1`, fill = Tech), stat = "identity") +
+  theme_minimal()+
+     theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8, angle = 45),  axis.text.y.left = element_text(size = 8), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm') ) +
+  labs(title = 'Co-Optimized', y = 'Average Annual Water Production (kGals)')+
+  scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))+
+  coord_cartesian(ylim = c(0,225000))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+  
+
+
+ 
+
+prod_elcdf <- rbind(prod_elcdf_util[1,],prod_elcdf_tech)
+prod_waterdf <- rbind(prod_waterdf_util[1,], prod_waterdf_tech)
+prod_elcdf$Scenario <- factor(prod_elcdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+prod_waterdf$Scenario <- factor(prod_waterdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+eg2 <- ggplot() + geom_bar(data = prod_elcdf, aes (x = Scenario, y = `1`, fill = Tech), stat = "identity") +
+  theme_minimal()+
+    theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8, angle = 45),  axis.title.y = element_blank(), axis.text.y.left = element_text(size = 8), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm') ) +
+  labs(title = 'Limited Utility', y = 'Average Annual Electricity Production (kWh)')+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))+
+  coord_cartesian(ylim = c(0,12500))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+wg2 <- ggplot() + geom_bar(data = prod_waterdf, aes (x = Scenario, y = `1`, fill = Tech), stat = "identity") +
+  theme_minimal()+
+     theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8, angle = 45),  axis.title.y.left = element_blank(), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,0.5,0.5,0.5), units = 'mm') ) +
+  labs(title = 'Limited Utility', y = 'Average Annual Water Production (kGals)')+
+  scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))+
+  coord_cartesian(ylim = c(0,225000))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+prod_elcdf <- rbind(prod_elcdf_util[1,],prod_elcdf_elc)
+prod_waterdf <- rbind(prod_waterdf_util[1,], prod_waterdf_water)
+prod_elcdf$Scenario <- factor(prod_elcdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+prod_waterdf$Scenario <- factor(prod_waterdf$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+eg3 <- ggplot() + geom_bar(data = prod_elcdf, aes (x = Scenario, y = `1`, fill = Tech), stat = "identity") +
+  theme_minimal()+
+    theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8, angle = 45), axis.title.y = element_blank(), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,3,0.5,3), units = 'mm') ) +
+  labs(title = 'Electricity Only', y = 'Average Annual Electricity Production (kWh)')+
+  scale_fill_manual(labels = c("H_PV" = "RFT-PV", "C_PV" = "COM-PV", "C_WND" = "WIND", "C_HB" = "HBRD", "Utility" = "E-UTIL"), values = c("H_PV" = "#A6CEE3", "C_PV" = "#1F78B4", "C_WND" = "#B2DF8A", "C_HB" = "#33A02C", "Utility" = "#CAB2D6"))+
+  coord_cartesian(ylim = c(0,12500))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+wg3 <- ggplot() + geom_bar(data = prod_waterdf, aes (x = Scenario, y = `1`, fill = Tech), stat = "identity") +
+  theme_minimal()+
+     theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8, angle = 45),  axis.title.y.left = element_blank(), axis.title.x = element_blank(), legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,3,0.5,3), units = 'mm') ) +
+  labs(title = 'Water Only', y = 'Average Annual Water Production (kGals)')+
+  scale_fill_manual(labels = c("C_VRF" = "WRF", "H_RW" = "RWH", 'H_GW' = 'GWR', "Utility" = "W-UTIL"), values = c("C_VRF" = "#E31A1C", "H_RW" = "#FB9A99", 'H_GW' = 'darkorange2', "Utility" = "#6A3D9A"))+
+  coord_cartesian(ylim = c(0,225000))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+eg <- ggarrange(eg1, eg2, eg3, nrow = 1, ncol = 3)
+#eg <- annotate_figure(eg, text_grob('Average Electric Demand Met by Source', face = "bold", size = 14))
+
+wg <- ggarrange(wg1, wg2, wg3, nrow = 1, ncol = 3)
+#wg <- annotate_figure(wg, text_grob('Average Water Demand Met by Source', face = "bold", size = 14))
+
+
+eg
+
+
+
+```
+
+
+```{r}
+#Emissions
+emit_water_coop <- rbind(prod_waterdf_util[1,],subset(prod_waterdf_coop, prod_waterdf_coop$Tech == 'Utility'))
+emit_water_coop$resource <- c(rep('Water',nrow(emit_water_coop)))
+#3.78541 kL (m^3) / kGal 396 kWh / m^3 0.85 lb CO2 / kWh
+emit_water_coop$emission <- round((emit_water_coop$`1`/264.172*0.51*0.85*0.907185/2000+emit_water_coop[1,2]/264.172*0.51*0.85*0.907185/2000),3)
+
+emit_water_water <- rbind(prod_waterdf_util[1,],subset(prod_waterdf_water, prod_waterdf_water$Tech == 'Utility'))
+emit_water_water$resource <- c(rep('Water',nrow(emit_water_water)))
+emit_water_water$emission <- round((emit_water_water$`1`/264.172*0.51*0.85*0.907185/2000+emit_water_water[1,2]/264.172*0.51*0.85*0.907185/2000),3)
+
+emit_water_elc <- rbind(prod_waterdf_util[1,],subset(prod_waterdf_elc, prod_waterdf_elc$Tech == 'Utility'))
+emit_water_elc$resource <- c(rep('Water',nrow(emit_water_elc)))
+emit_water_elc$emission <- round((emit_water_elc$`1`/264.172*0.51*0.85*0.907185/2000+emit_water_elc[1,2]/264.172*0.51*0.85*0.907185/2000),3)
+
+emit_elc_water <- rbind(prod_elcdf_util[1,],subset(prod_elcdf_water, prod_elcdf_water$Tech == 'Utility'))
+emit_elc_water$resource <- c(rep('Energy',nrow(emit_elc_water)))
+#0.85 lb CO2 / kWh 2000 lbs / ton  1 ton / 0.907185 metric ton
+emit_elc_water$emission <- round(emit_elc_water$`1`*0.85*0.907185/2000,2)
+
+emit_elc_coop <- rbind(prod_elcdf_util[1,],subset(prod_elcdf_coop, prod_elcdf_coop$Tech == 'Utility'))
+emit_elc_coop$resource <- c(rep('Energy',nrow(emit_elc_coop)))
+emit_elc_coop$emission <- round(emit_elc_coop$`1`*0.85*0.907185/2000,2)
+
+emit_elc_elc <- rbind(prod_elcdf_util[1,],subset(prod_elcdf_elc, prod_elcdf_elc$Tech == 'Utility'))
+emit_elc_elc$resource <- c(rep('Energy',nrow(emit_elc_elc)))
+emit_elc_elc$emission <- round(emit_elc_elc$`1`*0.85*0.907185/2000,2)
+
+
+emit_coop <- rbind(emit_water_coop,emit_elc_coop)
+emit_water <- rbind(emit_elc_water, emit_water_water)
+emit_elc <- rbind(emit_water_elc,emit_elc_elc)
+
+
+
+emit_coop$Scenario <- factor(emit_coop$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+emit_water$Scenario <- factor(emit_water$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+emit_elc$Scenario <- factor(emit_elc$Scenario, levels = c('Utility', 'Individual', '32 Houses', '320 Houses', '3200 Houses'))
+
+emit_coop
+emit_water
+emit_elc
+
+table(emit_coop$resource, emit_coop$Scenario)
+
+
+em1 <- ggplot() + geom_bar(data = emit_coop, aes (x = Scenario, y = emission, fill = resource), stat = "identity") +
+  theme_minimal()+
+     theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.title.x = element_blank(), axis.text.x = element_text(size = 8, angle = 45),  legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,3,0.5,3), units = 'mm') ) +
+  labs(title = 'Co-Optimized', y = 'Average Annual Emmissions (Metric Tons of CO2)')+
+  scale_fill_manual( labels = c('Water' = 'W-UTIL', 'Energy' = 'E-UTIL'), values = c("Water" = "#6A3D9A", "Energy" = "#CAB2D6" ))+
+  coord_cartesian(ylim = c(0,5))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+em2 <- ggplot() + geom_bar(data = emit_water, aes (x = Scenario, y = emission, fill = resource), stat = "identity") +
+  theme_minimal()+
+     theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8),  axis.title.x = element_blank(), axis.text.x = element_text(size = 8, angle = 45),  legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,3,0.5,3), units = 'mm') ) +
+  labs(title = 'Water Only', y = 'Average Annual Emmissions (Metric Tons of CO2)')+
+  scale_fill_manual( labels = c('Water' = 'W-UTIL', 'Energy' = 'E-UTIL'), values = c("Water" = "#6A3D9A", "Energy" = "#CAB2D6" ))+
+  coord_cartesian(ylim = c(0,5))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+em3 <- ggplot() + geom_bar(data = emit_elc, aes (x = Scenario, y = emission, fill = resource), stat = "identity") +
+  theme_minimal()+
+     theme(plot.title = element_text(size = 12, face = 'bold'), legend.position = 'bottom', legend.text = element_text(size = 8), legend.title = element_blank(), axis.title = element_text(size = 8), axis.title.x = element_blank(), axis.text.x = element_text(size = 8, angle = 45),  legend.key.width = unit(0.06, 'in'), legend.key.height = unit(0.06,'in'), legend.margin = margin(t = -0.8, unit = 'cm'), plot.margin = unit(x = c(0.5,3,0.5,3), units = 'mm') ) +
+  labs(title = 'Electricity Only', y = 'Average Annual Emmissions (Metric Tons of CO2)')+
+  scale_fill_manual( labels = c('Water' = 'W-UTIL', 'Energy' = 'E-UTIL'), values = c("Water" = "#6A3D9A", "Energy" = "#CAB2D6" ))+
+  coord_cartesian(ylim = c(0,5))+
+  guides(fill=guide_legend(nrow = 2, byrow = TRUE))
+
+
+
+emg <- ggarrange(em1, em3, em2, nrow = 1, ncol = 3)
+emg
+
+```
+
+
+```{r}
+  
+#Graphs with All Paradigms
+  cg
+  ec
+  wc
+  eg
+  wg
+  emg
+  
+  #Tables
+  elc_capacitydf_coop 
+  water_capacitydf_coop 
+   
+  #CoOp Paradigm Graphs
+  # energy_pi_coop
+  # water_pi_coop
+  # daily_energy_coop 
+  # daily_water_coop 
+  # eprod_month_coop 
+  # wprod_month_coop 
+```
+
+
+
+
+
+
+
+```{r}
+#Plot Saves
+
+
+
+
+
+
+ggsave(filename = "costs.pdf", cg)
+
+ggsave(filename = "elc_cap.pdf", ec)
+ggsave(filename = "water_cap.pdf", wc)
+
+ggsave(filename = "prod_elc.pdf", eg)
+ggsave(filename = "prod_water.pdf", wg)
+
+ggsave(filename = 'emissions.pdf', emg)
+
+
+
+
+print('Saved')
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
