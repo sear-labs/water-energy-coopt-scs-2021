@@ -8,7 +8,7 @@ import argparse, csv, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from water_energy import build, load_config, TECHS, MONTHS          # noqa: E402
+from water_energy import build, load_config, TECHS, MONTHS, available_scenarios          # noqa: E402
 
 RESULTS = Path(__file__).resolve().parents[1] / "results"
 REFERENCE_OBJECTIVE = 30336.4771        # GAMS/CPLEX, optcr=0, proven optimal

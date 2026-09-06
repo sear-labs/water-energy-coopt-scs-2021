@@ -21,5 +21,10 @@ dev = ["pytest>=7,<9"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# The config and scenarios live INSIDE the package so they ship in the wheel.
+# Without this a `pip install` yields a package that cannot find its own data.
+[tool.setuptools.package-data]
+water_energy = ["config.yaml", "scenarios/*.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from water_energy import build, load_config, TECHS, MONTHS       # noqa: E402
+from water_energy import build, load_config, available_scenarios, TECHS, MONTHS  # noqa: E402
 
 GAMS_OBJECTIVE = 30336.4771
 GAMS_Y1 = {"RWI": 1, "RWO": 1, "HGW": 1, "CGW": 1, "CSW": 0}
@@ -63,3 +63,20 @@ def test_scenarios_load_and_change_the_answer(solved):
     m.optimize()
     assert m.Status == 2
     assert m.ObjVal > solved.ObjVal, "a higher discount rate must not be cheaper"
+
+
+def test_config_resolves_from_the_package_not_a_repo_root():
+    """Guards the published path: config must sit inside the package.
+
+    A root-relative path passes every source-checkout test and fails the moment
+    someone pip-installs. This assertion fails in the source tree too if the
+    layout regresses, which is the point - see the standard, 'The published path
+    is not the path you develop on'.
+    """
+    from water_energy import config as C
+    assert C.CONFIG.exists(), f"{C.CONFIG} missing"
+    assert C.CONFIG.parent.name == "water_energy", (
+        f"config.yaml must live inside the package, found at {C.CONFIG}"
+    )
+    assert C.SCENARIOS.parent.name == "water_energy"
+    assert available_scenarios(), "no scenarios found - packaging regression"

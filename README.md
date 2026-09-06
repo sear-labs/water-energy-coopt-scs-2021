@@ -18,6 +18,12 @@ python scripts/run_all.py          # solves, checks invariants, writes results/t
 pytest                             # the acceptance test against the original GAMS answer
 ```
 
+**The config lives inside the package, not at the repository root.** That is deliberate: a
+root-relative path passes every source-checkout test and then fails the moment someone
+`pip install`s, because `parents[2]` from `site-packages` lands on `Lib/`. Verified by installing
+into a clean virtualenv and solving from outside the source tree — the only check that walks a
+reader's path.
+
 ## What "reproduces exactly" means here
 
 The Python model is a port of `archive/gams-base-model/Project_Modelv4.gms`. The GAMS original was
@@ -71,9 +77,9 @@ tightening it would change the model the tests pin. Treat it as known debt.
 ## Layout
 
 ```
-config.yaml              every parameter; nothing numeric lives in the model code
-scenarios/               overlays - the formerly commented-out discount-rate cases
 src/water_energy/        model.py (the model) - config.py (loading)
+  config.yaml            every parameter; nothing numeric lives in the model code
+  scenarios/             overlays - the formerly commented-out discount-rate cases
 scripts/run_all.py       one command: solve, assert invariants, write results
 tests/                   the acceptance test against GAMS, plus domain invariants
 model-gams/              the full co-optimisation model, GAMS source (see below)
