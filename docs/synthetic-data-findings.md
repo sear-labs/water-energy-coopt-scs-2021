@@ -38,7 +38,7 @@ Per input, regenerated in isolation:
 
 `Water_Energy_Run.gms` ships with the original `optcr = 0.05`, so a default run returns
 `MODEL STATUS 8 Integer Solution` - an incumbent inside a 5% band, which is not solver-independent.
-**Set `optcr = 0` to compare against the figures above.** The default is left as the paper had it.
+**Set `optcr = 0` AND `optca = 0` to compare against the figures above** - the file carries an absolute gap of 1000 as well, which alone leaves the status at `8 Integer Solution`. The default is left as the paper had it.
 
 ## Why the tolerance is 5% and not tighter
 
