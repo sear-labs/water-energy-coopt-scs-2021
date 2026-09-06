@@ -20,6 +20,13 @@ literature-cited costs alone:
 Unused sheets carrying the same lineage (Demand_kWh, Demand_GAL, the *_input grids and
 the 41,043-row Results dump) are deleted outright — nothing reads them.
 """
+# NOTE ON PRECISION - do not reintroduce rounding of data values.
+# The model carries an equality against FIXED utility capacity
+# (Purchase.fx('U_H2O1')=h*b, with every household water technology fixed to zero).
+# It is tight enough that rounding inputs to 4 decimal places makes it INTEGER
+# INFEASIBLE. Measured: the real values written back unchanged solve to
+# 1,005,948.1924; the SAME values rounded to 4 dp do not solve at all. This cost a
+# long diagnostic detour that looked like a synthesis problem and was not.
 from __future__ import annotations
 
 import argparse
@@ -29,6 +36,13 @@ import statistics as st
 from pathlib import Path
 
 import openpyxl
+
+# The workbook states each monthly aggregate as the household sum PLUS exactly 1e-5.
+# Measured across all 12 months and both fuels: the difference is 1.000e-05 every time,
+# which is a deliberate slack, not rounding. The balance is an equality against FIXED
+# utility capacity, so setting the aggregate to the exact sum removes the slack and the
+# model is INTEGER INFEASIBLE. Preserve it.
+AGGREGATE_SLACK = 1e-5
 
 DROP_SHEETS = [
     "Demand_kWh", "Demand_GAL", "Demand_GAL_input", "Demand_kWh_input",
@@ -135,6 +149,9 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--params", default=None, help="where to write fitted_parameters.json")
     ap.add_argument("--seed", type=int, default=20260905)
+    ap.add_argument("--household-noise", type=float, default=1.0,
+                    help="multiplier on the fitted household residual CV; 0 gives the "
+                         "deterministic rank-1 reconstruction monthly_mean x house_factor")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
@@ -160,8 +177,9 @@ def main() -> int:
         members = [(r, h) for r, fl, h, _ in hrows if fl == fuel]
         lo, hi = f["observed_min"], f["observed_max"]
         for i in range(12):
+            cv = f["residual_cv"] * args.household_noise
             drawn = [draw(rng, f["monthly_mean"][i] * f["house_factor"][str(h)],
-                          f["residual_cv"], lo=lo, hi=hi) for _, h in members]
+                          cv, lo=lo, hi=hi) for _, h in members]
             # Match the REAL monthly aggregate exactly, not merely the mean.
             # The run file fixes every tank and water technology to zero
             # (Purchase.fx(TANK)=0, Purchase.fx(WTECH)=0), so demand is met solely by
@@ -205,7 +223,7 @@ def main() -> int:
                     head = (hi - drawn[j]) if gap > 0 else (drawn[j] - lo)
                     drawn[j] += share * head * (1 if gap > 0 else -1)
             for (r, _), v in zip(members, drawn):
-                ws.cell(r, 5 + i).value = round(min(hi, max(lo, v)), 4)
+                ws.cell(r, 5 + i).value = min(hi, max(lo, v))
 
     # --- aggregate Demand: keep it consistent with the households ------------
     dws = wb["Demand"]
@@ -225,7 +243,7 @@ def main() -> int:
             before = sum(v for v in (dws.cell(row, 5 + i).value for i in range(12))
                          if isinstance(v, (int, float)))
             for i in range(12):
-                dws.cell(row, 5 + i).value = round(agg[label][i], 6)
+                dws.cell(row, 5 + i).value = agg[label][i] + AGGREGATE_SLACK
             after = sum(agg[label])
             drift[label] = round(100 * (after - before) / before, 4) if before else 0.0
     params["aggregate_demand_drift_pct"] = drift
@@ -282,7 +300,7 @@ def main() -> int:
                         for j in headroom:
                             drawn[j] = min(cap, drawn[j] * k)
                 for row, v in zip(members, drawn):
-                    row[keyc + i].value = round(v, 6)
+                    row[keyc + i].value = v
 
     for name in DROP_SHEETS:
         if name in wb.sheetnames:

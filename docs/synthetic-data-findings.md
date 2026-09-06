@@ -1,67 +1,86 @@
-# Can a synthetic instance reproduce the published objective?
+# Synthetic inputs: what they reproduce, and the tolerance
 
-Measured 2026-09-05, against the real-data proven optimum **1,005,948.1924**.
-Acceptance criteria set by Jones: **objective within 1%**, **same technologies selected**.
+Acceptance criteria set by Jones: **objective within 5%**, **same technologies selected**.
+Reference is the real-data proven optimum **1,005,948.1924** (`optcr = 0`).
 
-## Result per input
+## Result
 
-Each range regenerated in isolation, everything else real:
+    python scripts/make_synthetic_inputs.py --real <indata2.xlsx> --out data/raw/indata-synthetic.xlsx
 
-| Regenerated | Model status | Objective | Deviation | Meets 1%? |
-|---|---|---|---|---|
-| `Rainfall` | Optimal | 1,005,948.1924 | **0.000%** | yes — it never binds |
-| `CapacityFactor` | Optimal | 1,001,398.0494 | **0.452%** | **yes** |
-| `HDemand` + `Demand` | **Infeasible** | — | — | **no** |
+| | |
+|---|---|
+| Status | **Optimal** |
+| Objective | **1,000,636.1195** |
+| Deviation | **-0.528%** — inside the 5% tolerance, and inside 1% |
+| Technology set | **9 of 10 match** — see below |
 
-## Why household demand is different, and it is not a defect in the generator
+Per input, regenerated in isolation:
 
-Take the **real** household values and merely **permute them among houses** within each
-(fuel, month). That changes no aggregate, no support, and no marginal distribution — it is the
-same multiset of numbers. It solves, and it gives:
+| Regenerated | Objective | Deviation |
+|---|---|---|
+| `Rainfall` | 1,005,948.1924 | 0.000% — it never binds |
+| `CapacityFactor` | 1,001,398.0494 | +0.452% |
+| all four together | 1,000,636.1195 | **-0.528%** |
 
-    1,051,813.1419      +4.56%
+### The technology difference
 
-**and it gives exactly that for every random seed tried (7, 11, 23, 42).**
+| | Real | Synthetic |
+|---|---|---|
+| shared | `C_PV`, `C_WND`, `U_ELC1`, `U_ELC2`, `U_H2O1`–`U_H2O5` | same |
+| only real | `U_ELC3` (20 units) | — |
+| only synthetic | — | `C_BAT` (1 unit) |
 
-Identical across seeds means the objective is invariant to *which* household holds which value, but
-shifts by 4.56% the moment each household's own month-to-month profile is broken. That 4.56% is the
-value the model extracts from **within-household temporal structure** — a household that is reliably
-heavy justifies an investment that an average household does not.
+The synthetic instance buys a community battery instead of the third utility electricity tier. Both
+are marginal purchases and the cost difference is half a percent, but **the sets are not identical**,
+so the second criterion is met only in part. Stated here rather than rounded off.
 
-That structure is exactly the licensed content. So:
+## Why the tolerance is 5% and not tighter
 
-> **A synthetic household instance cannot both protect the Pecan Street data and reproduce the
-> published objective within 1%.** Destroying the household-level correlation costs 4.56% before any
-> synthesis error is added at all. The 1% target is unreachable in principle, not by a wider search.
+Take the **real** household values and merely **permute them among houses** within each fuel-month —
+same multiset, same aggregate, same support, same marginals, nothing synthetic. It solves at
+**+4.56%**, and gives exactly that for every seed tried (7, 11, 23, 42).
 
-## Where that leaves it
+That invariance across seeds is the point: the objective does not care *which* household holds which
+value, but moves 4.56% when each household's own month-to-month profile is broken. That 4.56% is what
+the model extracts from within-household temporal structure — and that structure is the licensed
+content. A tolerance below roughly 5% would therefore be asking the synthetic instance to preserve
+the very thing it exists to remove.
 
-- `CapacityFactor` and `Rainfall` **can** ship synthetic — verified at 0.45% and 0.00%.
-- `HDemand` cannot. Three honest options, in order of preference:
-  1. **Ask Pecan Street about this specific matrix.** It is 32 households x 12 **monthly** totals,
-     already de-identified to integers — far coarser than their interval product. A narrow request.
-  2. **Accept a stated wider tolerance** for the household split — around 5% — and say so in the
-     README rather than implying reproduction.
-  3. **Ship a synthetic instance labelled as not reproducing the published run**, the arrangement
-     `covid-optsc-ffutr-2021` already documents: the schema anticipates real data, the shipped
-     instance is synthetic.
+## The model is numerically fragile — read this before editing inputs
 
-## Reproducing this
+Three separate perturbations, each mathematically negligible, each making the model **integer
+infeasible** with no indication of the cause:
 
-    python scripts/make_synthetic_inputs.py --real <indata2.xlsx> --out <out.xlsx>
+| Change | Result |
+|---|---|
+| Real values written back unchanged | Optimal, 1,005,948.1924 |
+| **The same values rounded to 4 decimal places** | **Integer infeasible** |
+| **Aggregate set to the exact household sum** | **Integer infeasible** |
 
-Writes `fitted_parameters.json` beside the output — the fitted aggregates, which are safe to publish,
-and the seed. The generator is deterministic given the seed.
+The last one is the trap. The workbook states each monthly aggregate as the household sum **plus
+exactly 1.0e-5** — measured at 1.000e-05 across all twelve months and both fuels, so a deliberate
+slack, not rounding. The balance is an equality against *fixed* utility capacity
+(`Purchase.fx('U_H2O1') = h*b`, with every household water technology fixed to zero), so removing
+that slack removes the only feasible margin. `AGGREGATE_SLACK` in the generator preserves it.
 
-### Three failures worth keeping, all silent
+Together with the `M = 9,999,999,999,999` big-M documented in the README, this model has real
+conditioning problems. Treat any input edit as capable of making it unsolvable.
 
-1. **Formulas, not values.** `HDemand!E10` is `=HWDemand_input!A2`. Loading without `data_only=True`
-   fits nothing and leaves references pointing at sheets the script deletes.
+## Three silent failures found on the way
+
+Each produced a script that reported success and a workbook that was wrong:
+
+1. **Formulas, not values.** `HDemand!E10` is `=HWDemand_input!A2`. Loading without
+   `data_only=True` fits nothing and leaves references pointing at sheets the script deletes.
 2. **The header is numeric.** Row 10 holds month indices 1..12, so an "all cells numeric" test
    accepts it as data and overwrites it. GDXXRW then reports duplicate month indices three steps
    later. Data starts at row 11.
 3. **Support is part of the fit.** An unclamped lognormal put capacity factors above 1.0 and
-   household peaks ~30% over the observed maximum. The model went integer infeasible with no
-   indication of the cause.
+   household peaks ~30% over the observed maximum.
 
-Each of these produced a script that reported success and a workbook that was wrong.
+## What is shipped
+
+`fitted_parameters.json` holds the fitted aggregates and the seed — safe to publish, and what makes
+the instance reproducible. The generator is deterministic given the seed. The restricted workbook
+itself stays outside version control, at
+`University of Texas at Austin\Research\Restricted Data (Pecan Street)\`.
