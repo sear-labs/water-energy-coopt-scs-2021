@@ -1,6 +1,9 @@
-# --- restricted input data: Pecan Street licence, see README ---
+# --- input data ---
+# The restricted workbooks stay out. The synthetic instance and its fitted
+# parameters are deliberate exceptions: they contain no Pecan Street series.
 *.xlsx
 *.xls
+!data/raw/indata-synthetic.xlsx
 data/raw/*.gdx
 !data/raw/.gitkeep
 

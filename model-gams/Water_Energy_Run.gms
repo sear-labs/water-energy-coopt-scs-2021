@@ -6,7 +6,9 @@
 
 * Load database
 
-$set nin indata2
+* Default instance: the synthetic one shipped in data/raw/. See README.
+* The restricted workbooks are not distributed; override with --nin=<name> to use them.
+$if not set nin $set nin ../data/raw/indata-synthetic
 
 $call GDXXRW input=%nin%.xlsx output=indatamod.gdx index=index!A1
 

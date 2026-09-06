@@ -87,20 +87,46 @@ archive/gams-base-model/ the original .gms, unmodified, as the port's reference
 results/                 generated - gitignored
 ```
 
-## The input data is not in this repository
+## The data situation
 
-`model-gams/` needs `indata1.xlsx`–`indata3.xlsx`. **They are not distributed here.** They carry
-`Demand_kWh`, `CapacityFactor` and `Rainfall` sheets derived from **Pecan Street** data, which is
-licensed and not ours to redistribute — and unlike elsewhere in this project these sheets are
-load-bearing: the model's own index sheet reads `Rainfall!E10:Q754`, `CapacityFactor!C10` and
-`Hdemand!C9:P74`.
+**A synthetic instance ships and the model runs from a clean clone.**
 
-So `model-gams/` is **source you can read and audit, not a runnable artefact**, until that licence
-question is settled. The originals sit outside version control at
-`Documents\gamsdir\projdir\Water Energy CoOp\`.
+```bash
+cd model-gams && gams Water_Energy_Run.gms      # uses data/raw/indata-synthetic.xlsx
+```
 
-The Python model in `src/` has no such dependency — every input is in `config.yaml`, and it runs
-from a clean clone.
+It reproduces the real-data optimum to **-0.384%** (1,002,084.10 against 1,005,948.1924), well
+inside the 5% tolerance agreed for it. Every seed tried lands inside 0.53%. It is **not** an exact
+technology match: every seed buys one community battery `C_BAT` that the real instance does not,
+because synthesis slightly smooths the household profile. Full measurements, including why the
+tolerance is 5% and not 1%, are in [`docs/synthetic-data-findings.md`](docs/synthetic-data-findings.md).
+
+`scripts/make_synthetic_inputs.py` regenerates it deterministically from a seed;
+`data/raw/fitted_parameters.json` holds the fitted aggregates.
+
+### On the underlying data
+
+The original inputs derive from **Pecan Street** household data. Per the author, that data was
+already de-identified, and at the time of this work was available to academics on request; the
+paywall came later. The shipped instance is in any case **sampled from fitted aggregate parameters**,
+not perturbed from the originals, so it does not reproduce any household series.
+
+The original workbooks are still **not distributed here** — `.gitignore` blocks every `.xlsx` except
+the synthetic one, verified with `git add --dry-run` rather than assumed. They live outside version
+control at `University of Texas at Austin\Research\Restricted Data (Pecan Street)\`.
+
+### A warning before editing any input
+
+This model is numerically fragile. Each of these is enough to make it **integer infeasible** with no
+indication of the cause:
+
+- rounding input values to 4 decimal places
+- setting the monthly aggregate to the *exact* household sum
+
+The workbook states each monthly aggregate as the household sum **plus exactly 1.0e-5** - measured at
+1.000e-05 across all twelve months and both fuels. That slack is deliberate: the balance is an
+equality against fixed utility capacity, and removing it removes the only feasible margin.
+`AGGREGATE_SLACK` in the generator preserves it.
 
 ## How to cite
 

@@ -5,34 +5,40 @@ Reference is the real-data proven optimum **1,005,948.1924** (`optcr = 0`).
 
 ## Result
 
-    python scripts/make_synthetic_inputs.py --real <indata2.xlsx> --out data/raw/indata-synthetic.xlsx
+    cd model-gams && gams Water_Energy_Run.gms      # uses data/raw/indata-synthetic.xlsx
 
-| | |
-|---|---|
-| Status | **Optimal** |
-| Objective | **1,000,636.1195** |
-| Deviation | **-0.528%** — inside the 5% tolerance, and inside 1% |
-| Technology set | **9 of 10 match** — see below |
+The shipped instance is seed **11**. Across four seeds, solved to `optcr = 0`:
+
+| Seed | Objective | Deviation | Technologies vs real |
+|---|---|---|---|
+| 20260905 | 1,000,636.12 | -0.528% | missing `U_ELC3`, extra `C_BAT` |
+| **11 (shipped)** | **1,002,084.10** | **-0.384%** | **all real technologies, extra `C_BAT`** |
+| 42 | 1,007,104.82 | +0.115% | missing `U_ELC3`, extra `C_BAT` |
+| 777 | 1,001,270.74 | -0.465% | all real technologies, extra `C_BAT` |
+
+**Objective: every seed inside 0.53%**, comfortably within the agreed 5% and in fact within 1%.
+
+**Technologies: not an exact match, and the difference is systematic.** *Every* seed buys a community
+battery `C_BAT` that the real instance does not. That is not sampling noise — synthesis slightly
+smooths the household profile, which raises the arbitrage value of storage just past its threshold.
+Two of four seeds also drop `U_ELC3` (20 units). Seed 11 was chosen because it selects every
+technology the real instance does; the extra `C_BAT` remains.
+
+So the second criterion is met **in part**: no real technology is missing, but one extra appears.
+Stated plainly rather than rounded off, and it is a property of synthesis here, not of the seed.
 
 Per input, regenerated in isolation:
 
 | Regenerated | Objective | Deviation |
 |---|---|---|
-| `Rainfall` | 1,005,948.1924 | 0.000% — it never binds |
+| `Rainfall` | 1,005,948.1924 | 0.000% - it never binds |
 | `CapacityFactor` | 1,001,398.0494 | +0.452% |
-| all four together | 1,000,636.1195 | **-0.528%** |
 
-### The technology difference
+### Reproducing a comparable number
 
-| | Real | Synthetic |
-|---|---|---|
-| shared | `C_PV`, `C_WND`, `U_ELC1`, `U_ELC2`, `U_H2O1`–`U_H2O5` | same |
-| only real | `U_ELC3` (20 units) | — |
-| only synthetic | — | `C_BAT` (1 unit) |
-
-The synthetic instance buys a community battery instead of the third utility electricity tier. Both
-are marginal purchases and the cost difference is half a percent, but **the sets are not identical**,
-so the second criterion is met only in part. Stated here rather than rounded off.
+`Water_Energy_Run.gms` ships with the original `optcr = 0.05`, so a default run returns
+`MODEL STATUS 8 Integer Solution` - an incumbent inside a 5% band, which is not solver-independent.
+**Set `optcr = 0` to compare against the figures above.** The default is left as the paper had it.
 
 ## Why the tolerance is 5% and not tighter
 
