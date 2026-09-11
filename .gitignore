@@ -33,6 +33,13 @@ dist/
 .ipynb_checkpoints/
 
 # --- generated ---
+# Cleaned OUTPUT is a deliberate exception: it is committed so a clean clone
+# reproduces every number in the README and in notebooks/00_verification.ipynb
+# without a solver, a licence, or the restricted inputs. Everything else here
+# is regenerable and stays out.
 results/**
 !results/.gitkeep
-!results/tables/.gitkeep
+!results/tables/
+!results/tables/*.csv
+!results/figures/
+!results/figures/*.png

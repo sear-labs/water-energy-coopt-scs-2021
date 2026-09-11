@@ -13,10 +13,13 @@ authors = [{name = "Erick C. Jones, Jr.", email = "erick.jones@uta.edu"}]
 dependencies = [
     "gurobipy>=11,<14",
     "PyYAML>=6,<7",
+    "matplotlib>=3.7,<4",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7,<9"]
+# Executing the notebooks, which is how they are shipped with outputs.
+notebooks = ["jupyter>=1,<2", "nbformat>=5,<6", "nbclient>=0.9,<1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

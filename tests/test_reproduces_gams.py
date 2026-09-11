@@ -10,10 +10,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from water_energy import build, load_config, available_scenarios, TECHS, MONTHS  # noqa: E402
+from water_energy.reference import (                                              # noqa: E402
+    GAMS_OBJECTIVE, GAMS_Y1, GAMS_Y, TOL_OBJECTIVE, TOL_SOLUTION,
+    GUROBI_LIMITED_LICENCE_CAP, Y1_DETERMINED, Y1_UNDETERMINED,
+)
 
-GAMS_OBJECTIVE = 30336.4771
-GAMS_Y1 = {"RWI": 1, "RWO": 1, "HGW": 1, "CGW": 1, "CSW": 0}
-GAMS_Y = {"RWI": 6.4935, "RWO": 24.4683, "HGW": 0.0, "CGW": 100.0, "CSW": 0.0}
+# The reference values and tolerances are imported, never restated here. A
+# threshold written out in both a test and a script is a value with copies, and
+# the copy is where a correction fails to reach.
 
 
 @pytest.fixture(scope="module")
@@ -27,22 +31,57 @@ def solved():
 
 
 def test_objective_matches_gams(solved):
-    assert solved.ObjVal == pytest.approx(GAMS_OBJECTIVE, abs=1e-3)
+    assert solved.ObjVal == pytest.approx(GAMS_OBJECTIVE, abs=TOL_OBJECTIVE)
 
 
 def test_investment_decisions_match_gams(solved):
+    """Only the binaries the optimum actually determines.
+
+    y1["HGW"] is a free coordinate of the optimal face - see reference.py, where
+    the measurement is recorded. Asserting it would be testing which vertex this
+    solver happened to return, and would go red on a correct answer elsewhere.
+    """
     got = {i: round(solved._vars["y1"][i].X) for i in TECHS}
-    assert got == GAMS_Y1
+    for i in Y1_DETERMINED:
+        assert got[i] == GAMS_Y1[i], f"{i}: investment decision differs from the published run"
+
+
+def test_the_undetermined_binary_is_still_undetermined(solved):
+    """The degeneracy is asserted, not worked around.
+
+    If a future edit makes HGW's binary load-bearing, this fails and the exclusion
+    above stops being correct - which is the point. A documented degeneracy that
+    nothing watches is a comment.
+    """
+    for i in Y1_UNDETERMINED:
+        assert solved._vars["y"][i].X == pytest.approx(0.0, abs=TOL_SOLUTION), (
+            f"{i} now has adopters, so its binary may be determined - recheck"
+        )
+
+
+def test_buying_capacity_implies_paying_the_fixed_cost(solved):
+    """The invariant that holds for every technology, determined or not."""
+    for i in TECHS:
+        if solved._vars["y"][i].X > TOL_SOLUTION:
+            assert solved._vars["y1"][i].X > 0.5, f"{i}: capacity bought without the fixed cost"
 
 
 def test_adoption_levels_match_gams(solved):
     for i in TECHS:
-        assert solved._vars["y"][i].X == pytest.approx(GAMS_Y[i], abs=1e-3), f"tech {i}"
+        assert solved._vars["y"][i].X == pytest.approx(GAMS_Y[i], abs=TOL_SOLUTION), f"tech {i}"
 
 
 def test_model_fits_gurobi_limited_licence(solved):
-    """<=2000 rows and cols, so a reader without a full licence can still run it."""
-    assert solved.NumConstrs <= 2000 and solved.NumVars <= 2000
+    """Small enough for the pip-bundled restricted licence, so a reader can run it.
+
+    A size check is a proxy. The claim was verified by SOLVING under that licence
+    on 2026-09-11 - "Restricted license - for non-production use only" in the
+    solver log, returning the same optimum - because some licences are enforced
+    at optimize() and a declaration-only probe reports success under one that
+    then refuses the build.
+    """
+    cap = GUROBI_LIMITED_LICENCE_CAP
+    assert solved.NumConstrs <= cap and solved.NumVars <= cap
 
 
 def test_domain_invariants(solved):

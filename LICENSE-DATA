@@ -1,0 +1,48 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+WHAT THIS COVERS
+----------------
+`LICENSE` (MIT) speaks about the Software. It says nothing about a database right,
+which would leave the data in this repository -- the part a reader is most likely to
+reuse -- with unstated terms. This file states them, by path:
+
+    data/raw/indata-synthetic.xlsx     the synthetic model instance
+    data/raw/fitted_parameters.json    the fitted aggregate parameters it is drawn from
+    results/tables/**                  the committed cleaned output
+    results/figures/**                 the reproducible figures
+    figures/**                         the published figures from the paper
+    docs/**                            the synthetic-data findings
+
+Everything else -- all Python source under `src/`, `scripts/` and `tests/`, the
+notebooks under `notebooks/`, and the archived originals under `archive/` and
+`model-gams/` -- is covered by `LICENSE` (MIT).
+
+CHOOSING NOTHING IS CHOOSING
+----------------------------
+Zenodo's licence field is required and defaults to CC-BY, so an unstated choice
+becomes a stated one at deposit. This file makes the choice deliberately rather than
+letting the deposit form make it.
+
+CC BY rather than CC0 because these tables are the evidence behind a published
+paper: attribution is the point, and citation norms alone have not proved enough.
+
+WHAT IS NOT HERE, AND IS NOT LICENSED BY THIS FILE
+--------------------------------------------------
+The original model inputs derive from Pecan Street household data and are NOT
+distributed in this repository. Nothing in this file grants any right to them. The
+shipped instance is sampled from fitted aggregate parameters rather than perturbed
+from the originals, so it does not reproduce any household series.
+
+TERMS
+-----
+You are free to share and adapt the material for any purpose, including
+commercially, provided you give appropriate credit, link to the licence, and
+indicate if changes were made.
+
+Full text: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Attribution:
+
+    Jones, Erick C., Jr. (2021). Co-optimization and community: Maximizing the
+    benefits of distributed electricity and water technologies. Sustainable Cities
+    and Society. https://doi.org/10.1016/j.scs.2020.102515

@@ -2,8 +2,7 @@
 import gurobipy as gp
 from gurobipy import GRB
 
-TECHS = ["RWI", "RWO", "HGW", "CGW", "CSW"]
-MONTHS = list(range(1, 13))
+from .sets import TECHS, MONTHS
 
 
 def build(cfg):

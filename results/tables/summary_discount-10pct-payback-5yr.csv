@@ -1,0 +1,9 @@
+quantity,value
+objective,32812.7341
+capital_cost,19476.195
+water_cost,12904.247
+energy_cost,432.2922
+rows,233
+columns,214
+binaries,5
+mip_gap_requested,0.0
