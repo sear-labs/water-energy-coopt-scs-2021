@@ -8,9 +8,14 @@ The scripts that drew the paper's figures. Moved here from
 still living outside a named repository; moved again from `figures-r/` at the repository root
 on 2026-09-11, when the archive boundary was made explicit and testable.
 
-**They do not run from a clean clone, and they never will.** They read `graph_data.RData` and
-the `indata*.xlsx` scenario workbooks, neither of which is distributed — the workbooks carry
-the Pecan Street–derived sheets, and the `.RData` is derived from them.
+**They do not run from a clean clone, and they never will.** They read a saved R workspace
+image and the `indata*.xlsx` scenario workbooks, neither of which is distributed — the workbooks
+carry the Pecan Street–derived sheets, and the image is derived from them.
+
+**They do still run for the author**, from a private drive, and on 2026-09-11 they were run:
+a scratch copy of `Water_Energy_graphs2.Rmd`, repointed at the workspace image, regenerated six
+of the published figures and matched the committed PDFs. See [`../README.md`](../README.md) for
+the detail. Nothing in this directory was edited to do it.
 
 | Script | Lines | Draws |
 |---|---|---|
@@ -33,12 +38,17 @@ vocabulary this is stages 6–7, clean-up output code and cleaned output, not st
 
 It persists none of them to a file; `save.image("Co-Op_graphs.RData")` writes the whole R
 global environment, and `Water_Energy_graphs2.Rmd` opens by loading that image from an absolute
-path (`~/Coding/R/Research/Co-Opt Paper/graph_data.RData`) on a machine that no longer exists.
+path, `~/Coding/R/Research/Co-Opt Paper/graph_data.RData`. That path does not resolve on any
+current machine, and the file at the other end has since been renamed — the surviving image is
+`Water_Energy_graphs2.Rmd.RData`, in that same folder on the author's Drive. An absolute path
+plus a rename is why this looked unrunnable for longer than it was.
 
-## The one thing still owed
+## The aggregates it computed are now committed
 
-The aggregate tables this produces — cost, capacity, production, PI shares by scenario — should
-be extracted once from the real run and committed as CSVs, so a reader can check the published
-numbers without R, without GAMS, and without the restricted workbooks. That has **not** been
-done: it needs both R and the Pecan Street workbooks, and neither is on the machine this
-repository was assembled on. Tracked in the root README under *What is not reproducible here*.
+The tables this layer derives — cost, capacity, production and demand fractions, by scenario and
+by system configuration — were extracted from the workspace image on 2026-09-11 and committed to
+[`results/tables/published/`](../../results/tables/published/). A reader can now check the
+paper's aggregates without R, without GAMS, and without the restricted workbooks.
+
+`../extraction/extract_published_tables.R` is the record of how, and is archived for the same
+reason this directory is: its input is not distributable, so no reader re-runs it.

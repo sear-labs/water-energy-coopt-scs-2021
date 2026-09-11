@@ -40,6 +40,8 @@ dist/
 results/**
 !results/.gitkeep
 !results/tables/
+!results/tables/**/
+!results/tables/**/*.csv
 !results/tables/*.csv
 !results/figures/
 !results/figures/*.png
