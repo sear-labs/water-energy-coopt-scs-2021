@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite both the software and the paper."
 title: "water-energy-coopt: household water-supply technology optimisation"
-version: 1.0.0
+version: 1.0.1
 # Two licences, by path - see LICENSE (code) and LICENSE-DATA (data, tables, figures).
 license:
   - MIT
