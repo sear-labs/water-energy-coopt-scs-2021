@@ -14,8 +14,8 @@ The repository holds **two models at two scales**, and it matters which one you 
 
 | | Opens in Colab | Needs | Answers |
 |---|---|---|---|
-| [`notebooks/00_verification.ipynb`](notebooks/00_verification.ipynb) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sear-labs/water-energy-coopt-scs-2021/blob/v1.0.0/notebooks/00_verification.ipynb) | **nothing** — no solver, no licence | is the published result correct? |
-| [`notebooks/01_example.ipynb`](notebooks/01_example.ipynb) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sear-labs/water-energy-coopt-scs-2021/blob/v1.0.0/notebooks/01_example.ipynb) | a free solver | does the implementation run, and what does it do? |
+| [`notebooks/00_verification.ipynb`](notebooks/00_verification.ipynb) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sear-labs/water-energy-coopt-scs-2021/blob/v1.0.1/notebooks/00_verification.ipynb) | **nothing** — no solver, no licence | is the published result correct? |
+| [`notebooks/01_example.ipynb`](notebooks/01_example.ipynb) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sear-labs/water-energy-coopt-scs-2021/blob/v1.0.1/notebooks/01_example.ipynb) | a free solver | does the implementation run, and what does it do? |
 
 Both ship **executed**, so you can read every number without running anything.
 
