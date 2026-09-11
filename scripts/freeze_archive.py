@@ -24,13 +24,31 @@ SKIP_SUFFIXES = {".pyc"}
 SKIP_NAMES = {".DS_Store", "Thumbs.db"}
 
 
+def content_hash(path: Path) -> str:
+    """sha256 of the file with line endings normalised to LF.
+
+    Hashing the bytes on disk is NOT portable, and the failure is invisible until
+    someone clones. git stores these blobs with LF and `core.autocrlf` rewrites
+    them to CRLF on checkout, so the same commit produces different bytes on
+    Windows and Linux - and a freeze test that fails on a clean clone gets
+    deleted rather than believed. Measured 2026-09-11: a fresh clone reported two
+    archived files CHANGED that nobody had touched.
+
+    A file containing a NUL byte is treated as binary and hashed as-is, since
+    normalising those would corrupt the fingerprint rather than stabilise it.
+    """
+    raw = path.read_bytes()
+    if b"\x00" in raw:
+        return hashlib.sha256(raw).hexdigest()
+    return hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+
+
 def entries():
     for top in FROZEN:
         for p in sorted((ROOT / top).rglob("*")):
             if not p.is_file() or p.suffix in SKIP_SUFFIXES or p.name in SKIP_NAMES:
                 continue
-            rel = p.relative_to(ROOT).as_posix()
-            yield rel, hashlib.sha256(p.read_bytes()).hexdigest()
+            yield p.relative_to(ROOT).as_posix(), content_hash(p)
 
 
 def render() -> str:
