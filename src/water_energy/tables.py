@@ -36,7 +36,7 @@ ENV_VAR = "WATER_ENERGY_TABLES"
 
 # A release tag, never `main`. main moves, and a notebook fetching it silently
 # changes its answer when somebody edits a table - see the standard, Part 1 rule 8.
-PUBLISHED_REF = "v1.0.1"
+PUBLISHED_REF = "v1.0.2"
 PUBLISHED_URL = (
     "https://raw.githubusercontent.com/sear-labs/"
     f"water-energy-coopt-scs-2021/{PUBLISHED_REF}/results/tables"

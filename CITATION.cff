@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite both the software and the paper."
 title: "water-energy-coopt: household water-supply technology optimisation"
-version: 1.0.1
+version: 1.0.2
 # A single SPDX string, deliberately. CFF 1.2.0 permits a list, and this field held
 # ["MIT", "CC-BY-4.0"] until 2026-09-11 - at which point Zenodo accepted the release
 # webhook with a 202 and then produced no record at all, silently, while the two
