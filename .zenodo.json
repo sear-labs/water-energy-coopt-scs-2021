@@ -1,0 +1,30 @@
+{
+  "upload_type": "software",
+  "license": "mit-license",
+  "creators": [
+    {
+      "name": "Jones, Erick C., Jr.",
+      "affiliation": "University of Texas at Arlington",
+      "orcid": "0000-0003-0559-4699"
+    }
+  ],
+  "access_right": "open",
+  "title": "water-energy-coopt: household water and electricity co-optimisation - Sustainable Cities and Society 2021 paper model",
+  "description": "<p>The mixed-integer programs behind Jones (2021), <em>Sustainable Cities and Society</em> 64, 102515, on co-optimising distributed water and electricity technologies across community scales.</p><p>Two models at two scales. The base household model is ported from its GAMS original to Python and reproduces the published optimum exactly - 30336.4771, against a GAMS/CPLEX run solved with both the relative and absolute gaps at zero, so the target is a proven optimum rather than an incumbent inside a band. At 233 rows by 214 columns it fits the free solver bundled with <code>pip install gurobipy</code>, verified by solving under that licence rather than by counting variables. The full co-optimisation model behind the paper's figures is 799,394 by 900,467, needs a commercial solver, and is preserved as GAMS source rather than reimplemented.</p><p>Two notebooks. One verifies the published result with no solver and no licence at all; the other builds the whole base model by hand and asserts it agrees with the packaged implementation. Both ship executed.</p><p><strong>What a reader cannot reproduce, stated plainly:</strong> the published figures. Their inputs derive from Pecan Street household data and are not distributed - a synthetic instance ships in their place, sampled from fitted aggregate parameters, reproducing the real optimum to within 0.384%. The 31 aggregate tables behind the paper's figures are committed, so the published numbers remain checkable without R, GAMS, or the restricted inputs.</p><p>The GAMS originals and the R that drew the published figures are archived verbatim and frozen against a committed hash manifest, with a test that fails if any of them changes.</p><p><strong>Licensing:</strong> code is MIT; the data, tables and figures are CC BY 4.0, stated by path in LICENSE-DATA. Nothing here grants any right to the Pecan Street data, which is not included.</p>",
+  "related_identifiers": [
+    {
+      "identifier": "10.1016/j.scs.2020.102515",
+      "relation": "isSupplementTo",
+      "scheme": "doi",
+      "resource_type": "publication-article"
+    }
+  ],
+  "keywords": [
+    "water-energy nexus",
+    "distributed generation",
+    "rainwater harvesting",
+    "mixed-integer programming",
+    "co-optimisation",
+    "reproducibility"
+  ]
+}
