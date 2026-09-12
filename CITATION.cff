@@ -1,4 +1,7 @@
 cff-version: 1.2.0
+# Zenodo CONCEPT doi - always resolves to the latest version, so this line is
+# correct for the life of the repository and is never edited again.
+doi: 10.5281/zenodo.22716302
 message: "If you use this software, please cite both the software and the paper."
 title: "water-energy-coopt: household water-supply technology optimisation"
 version: 1.0.2
